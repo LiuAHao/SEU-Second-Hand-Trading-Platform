@@ -10,18 +10,23 @@ class PasswordHelper:
     @staticmethod
     def hash_password(password):
         """
-        加密密码
-        TODO: 使用bcrypt进行密码加密
-        - 成本因子：12
-        - 返回哈希值字符串
+        加密密码，返回bcrypt哈希
         """
-        pass
+        import bcrypt
+        if isinstance(password, str):
+            password = password.encode('utf-8')
+        salt = bcrypt.gensalt(rounds=12)
+        hashed = bcrypt.hashpw(password, salt)
+        return hashed.decode('utf-8')
     
     @staticmethod
     def verify_password(password, hashed):
         """
-        验证密码
-        TODO: 使用bcrypt验证密码是否匹配
-        - 返回True或False
+        验证密码是否匹配bcrypt哈希
         """
-        pass
+        import bcrypt
+        if isinstance(password, str):
+            password = password.encode('utf-8')
+        if isinstance(hashed, str):
+            hashed = hashed.encode('utf-8')
+        return bcrypt.checkpw(password, hashed)

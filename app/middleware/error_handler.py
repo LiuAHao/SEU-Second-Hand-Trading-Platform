@@ -4,28 +4,24 @@
 """
 
 
-def register_error_handlers(app):
-    """
-    注册全局错误处理器
-    TODO: 实现以下错误处理
-    - 404: 页面或资源不存在
-    - 500: 服务器内部错误
-    - 400: 请求参数错误
-    - 401: 未认证
-    - 403: 无权限
-    """
-    
+def register_error_handlers(app):  
+    from flask import jsonify
     @app.errorhandler(404)
     def not_found(error):
-        """404错误处理"""
-        pass
-    
+        return jsonify({'code': 404, 'message': '资源不存在'}), 404
+
     @app.errorhandler(500)
     def internal_error(error):
-        """500错误处理"""
-        pass
-    
+        return jsonify({'code': 500, 'message': '服务器内部错误'}), 500
+
     @app.errorhandler(400)
     def bad_request(error):
-        """400错误处理"""
-        pass
+        return jsonify({'code': 400, 'message': '请求参数错误'}), 400
+
+    @app.errorhandler(401)
+    def unauthorized(error):
+        return jsonify({'code': 401, 'message': '未认证'}), 401
+
+    @app.errorhandler(403)
+    def forbidden(error):
+        return jsonify({'code': 403, 'message': '无权限'}), 403

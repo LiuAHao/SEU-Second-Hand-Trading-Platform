@@ -103,62 +103,6 @@ def register_routes(app):
     
     # ============ API 路由（Mock 数据用） ============
     
-    @app.route('/api/items/search', methods=['GET'])
-    def api_search_items():
-        """搜索商品 API"""
-        # Mock 数据 - 在 mock-api.js 中处理
-        return jsonify({
-            'statusCode': 200,
-            'data': {'items': []}
-        })
-    
-    @app.route('/api/items/<int:item_id>', methods=['GET'])
-    def api_get_item(item_id):
-        """获取商品详情 API"""
-        return jsonify({
-            'statusCode': 200,
-            'data': {'item': None}
-        })
-    
-    @app.route('/api/recommend/popular', methods=['GET'])
-    def api_popular():
-        """获取热销商品 API"""
-        return jsonify({
-            'statusCode': 200,
-            'data': {'items': []}
-        })
-    
-    @app.route('/api/recommend/latest', methods=['GET'])
-    def api_latest():
-        """获取最新商品 API"""
-        return jsonify({
-            'statusCode': 200,
-            'data': {'items': []}
-        })
-    
-    @app.route('/api/categories', methods=['GET'])
-    def api_categories():
-        """获取分类列表 API"""
-        return jsonify({
-            'statusCode': 200,
-            'data': {'categories': []}
-        })
-    
-    @app.route('/api/users/register', methods=['POST'])
-    def api_register():
-        """注册 API"""
-        return jsonify({
-            'statusCode': 200,
-            'data': {'user': None, 'token': ''}
-        })
-    
-    @app.route('/api/users/login', methods=['POST'])
-    def api_login():
-        """登录 API"""
-        return jsonify({
-            'statusCode': 200,
-            'data': {'user': None, 'token': ''}
-        })
     
     @app.route('/api/cart', methods=['GET'])
     def api_get_cart():

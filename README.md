@@ -105,7 +105,10 @@ pip install -r requirements.txt
 
 # 数据库初始化
 mysql -u root -p < database/schema.sql
-
+# 或直接使用migrate数据库迁移
+flask db init
+flask db migrate
+flask db upgrade
 # 启动应用
 flask run --host=0.0.0.0 --port=5000
 ```
