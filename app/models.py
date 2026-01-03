@@ -33,12 +33,14 @@ class User(db.Model):
     # 1. 用户（卖家）发布的商品：user.items → 获取该用户所有商品；item.seller → 获取商品卖家
     items = db.relationship('Item', backref='seller', lazy=True, cascade='all, delete-orphan')
     # 2. 用户（买家）创建的订单：user.orders → 获取该用户所有订单；order.buyer → 获取订单买家
-    orders = db.relationship('Order', backref='buyer', lazy=True, cascade='all, delete-orphan')
-    # 3. 用户的收货地址：user.addresses → 获取该用户所有地址；address.user → 获取地址所属用户
+    orders = db.relationship('Order', foreign_keys='Order.buyer_id', backref='buyer', lazy=True, cascade='all, delete-orphan')
+    # 3. 用户作为卖家的订单：user.orders_as_seller → 获取该用户作为卖家的所有订单
+    sold_orders = db.relationship('Order', foreign_keys='Order.seller_id', backref='seller_user', lazy=True, cascade='all, delete-orphan')
+    # 4. 用户的收货地址：user.addresses → 获取该用户所有地址；address.user → 获取地址所属用户
     addresses = db.relationship('Address', backref='user', lazy=True, cascade='all, delete-orphan')
-    # 4. 用户发布的评价（作为评价者）：user.reviews_given → 该用户给出的所有评价
+    # 5. 用户发布的评价（作为评价者）：user.reviews_given → 该用户给出的所有评价
     reviews_given = db.relationship('Review', backref='reviewer', foreign_keys='Review.reviewer_id', lazy=True, cascade='all, delete-orphan')
-    # 5. 用户收到的评价（作为被评价者）：user.reviews_received → 该用户收到的所有评价
+    # 6. 用户收到的评价（作为被评价者）：user.reviews_received → 该用户收到的所有评价
     reviews_received = db.relationship('Review', backref='reviewee', foreign_keys='Review.reviewee_id', lazy=True, cascade='all, delete-orphan')
 
     # 邮箱格式验证（必须为@seu.edu.cn）
@@ -126,8 +128,9 @@ class Item(db.Model):
 
 # -------------------------- 3. 订单表（Orders）- 核心业务表 --------------------------
 class Order(db.Model):
-    __tablename__ = 'orders'  # 与数据库表名严格一致
-    # 订单状态枚举（定义在类内部）
+    __tablename__ = 'orders'
+    
+    # 订单状态枚举
     STATUS_CHOICES = [
         ('pending', '待支付'),
         ('paid', '已支付'),
@@ -135,27 +138,39 @@ class Order(db.Model):
         ('completed', '已完成'),
         ('cancelled', '已取消')
     ]
-    # 核心字段（匹配schema.sql，含完整约束）
+    
+    # 核心字段 - 匹配数据库现有结构
     id = db.Column(db.Integer, primary_key=True, autoincrement=True, comment='订单ID')
+    order_number = db.Column(db.String(50), unique=True, nullable=False, comment='订单号')  # 数据库已有
     buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, comment='买家ID')
     total_amount = db.Column(db.Numeric(10, 2), nullable=False, comment='订单总金额')
+    seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, comment='卖家ID')  # 数据库已有
+    address_id = db.Column(db.Integer, db.ForeignKey('addresses.id'), nullable=False, comment='地址ID')  # 数据库已有
     status = db.Column(db.String(50), nullable=False, default='pending', comment='订单状态')
     shipping_address = db.Column(db.String(255), nullable=False, comment='配送地址')
+    total_price = db.Column(db.Numeric(10, 2), nullable=False, comment='订单总价')  # 数据库已有，与total_amount可能重复
+    remarks = db.Column(db.Text, nullable=True, default=None, comment='备注')  # 数据库已有
     created_at = db.Column(db.DateTime, default=datetime.now, nullable=False, comment='创建时间')
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, nullable=False, comment='更新时间')
-
-    # 索引定义（匹配schema.sql）
+    
+    # 索引定义
     __table_args__ = (
         db.Index('idx_buyer_id', 'buyer_id'),
+        db.Index('idx_seller_id', 'seller_id'),
         db.Index('idx_status', 'status'),
         db.Index('idx_created_at', 'created_at'),
+        db.UniqueConstraint('order_number', name='uq_order_number'),
     )
-
+    
     # 模型关联关系
-    # 1. 订单对应的明细：order.order_items → 该订单包含的所有商品明细
     order_items = db.relationship('OrderItem', backref='order', lazy=True, cascade='all, delete-orphan')
-    # 2. 订单对应的评价：order.reviews → 该订单对应的所有评价
     reviews = db.relationship('Review', backref='order', lazy=True, cascade='all, delete-orphan')
+    
+    # 卖家关系（新增）
+    seller = db.relationship('User', foreign_keys=[seller_id], backref='orders_as_seller')
+    
+    # 地址关系（新增）
+    address = db.relationship('Address', foreign_keys=[address_id], backref='orders')
     
     # 状态验证器
     @validates('status')
@@ -164,30 +179,39 @@ class Order(db.Model):
         if status not in valid_statuses:
             raise ValueError(f'无效状态，必须是：{", ".join(valid_statuses)}')
         return status
-
+    
     def __repr__(self):
-        return f"<Order(id={self.id}, buyer_id={self.buyer_id}, total_amount={self.total_amount}, status='{self.status}')>"
+        return f"<Order(id={self.id}, order_number='{self.order_number}', buyer_id={self.buyer_id}, total_amount={self.total_amount})>"
+    
+    def generate_order_number(self):
+        """生成订单号（如果需要）"""
+        if not self.order_number:
+            import time
+            import random
+            timestamp = int(time.time())
+            random_num = random.randint(1000, 9999)
+            self.order_number = f'ORD{timestamp}{random_num}'
 
 # -------------------------- 4. 订单明细表（Order_Items）- 关联表 --------------------------
 class OrderItem(db.Model):
-    __tablename__ = 'order_items'  # 与数据库表名严格一致
+    __tablename__ = 'order_items'
 
-    # 核心字段（匹配schema.sql，含联合外键约束）
+    # 核心字段（匹配数据库实际结构）
     id = db.Column(db.Integer, primary_key=True, autoincrement=True, comment='订单明细ID')
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False, comment='订单ID')
     item_id = db.Column(db.Integer, db.ForeignKey('items.id'), nullable=False, comment='商品ID')
     quantity = db.Column(db.Integer, nullable=False, default=1, comment='购买数量')
-    price_at_purchase = db.Column(db.Numeric(10, 2), nullable=False, comment='购买时价格')
+    unit_price = db.Column(db.Numeric(10, 2), nullable=False, comment='购买时价格')  # 改为unit_price
     created_at = db.Column(db.DateTime, default=datetime.now, nullable=False, comment='创建时间')
 
-    # 索引定义（匹配schema.sql）
+    # 索引定义（匹配数据库）
     __table_args__ = (
         db.Index('idx_order_id', 'order_id'),
-        db.Index('idx_item_id', 'item_id'),
+        db.Index('idx_item_id', item_id),
     )
 
     def __repr__(self):
-        return f"<OrderItem(id={self.id}, order_id={self.order_id}, item_id={self.item_id}, quantity={self.quantity}, price_at_purchase={self.price_at_purchase})>"
+        return f"<OrderItem(id={self.id}, order_id={self.order_id}, item_id={self.item_id}, quantity={self.quantity}, unit_price={self.unit_price})>"
 
 # -------------------------- 5. 地址表（Addresses）- 辅助业务表 --------------------------
 class Address(db.Model):

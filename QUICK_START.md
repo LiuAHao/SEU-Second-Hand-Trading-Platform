@@ -44,7 +44,7 @@ Get-Service | Where-Object {$_.Name -like "*MySQL*"}
 
 ```powershell
 # 连接到 MySQL
-mysql -u root -p123456
+mysql -u root -p123456         #密码123456不成功时请尝试root
 
 # 在 MySQL 命令行中创建数据库
 mysql> CREATE DATABASE seu_second_hand CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -88,7 +88,7 @@ python run.py
 ## 数据库配置
 
 - **用户名：** root
-- **密码：** 123456
+- **密码：** root(本来是123456，实际使用发现123456不成功，请使用root)
 - **主机：** localhost
 - **端口：** 3306
 - **数据库：** seu_second_hand

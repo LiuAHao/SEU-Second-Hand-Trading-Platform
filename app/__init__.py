@@ -12,7 +12,7 @@ try:
     from .routes import register_routes
 except ImportError:
     register_routes = None
-from app.api.cart import cart_bp
+
 # 加载 .env 环境变量文件（优先加载，避免敏感配置硬编码）
 load_dotenv()
 
@@ -38,7 +38,9 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
         'DATABASE_URI',  # 从 .env 文件读取的配置键
         # 默认值（备用，若 .env 未配置，可临时使用，生产环境需删除）
-        'mysql+pymysql://root:123456@localhost:3306/SEU_Second_Hand?charset=utf8mb4'
+
+        #此处默认密码更改为 root，请根据实际情况修改
+        'mysql+pymysql://root:root@localhost:3306/SEU_Second_Hand?charset=utf8mb4'  
     )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # 关闭对象修改跟踪，消除警告、提升性能
     # 可选：开启数据库查询日志（开发环境调试用）
@@ -47,16 +49,26 @@ def create_app():
     # 3. 注册 SQLAlchemy 实例（将 db 与 Flask 应用绑定）
     db.init_app(app)
     migrate.init_app(app, db)  # 初始化 Flask-Migrate，支持数据库迁移
-    # 注册所有API蓝图
+    
+    # 4. 注册所有API蓝图
     from app.api.auth import auth_bp
     from app.api.users import users_bp
     from app.api.items import items_bp
+    from app.api.orders import orders_bp  # 添加订单蓝图导入
+    from app.api.cart import cart_bp      # 添加购物车蓝图导入
+    
     app.register_blueprint(items_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(users_bp)
-    # 4. 注册路由（若存在路由注册函数）
+    app.register_blueprint(orders_bp)      # 注册订单蓝图
+    app.register_blueprint(cart_bp)        # 注册购物车蓝图
+    
+    print("API蓝图注册完成: auth, users, items, orders, cart")  # 添加日志
+
+    # 5. 注册路由（若存在路由注册函数）
     if register_routes is not None:
         register_routes(app)
-        print("路由注册成功！")
-    # 5. 返回配置完整的应用实例
+        print("页面路由注册成功！")
+
+    # 6. 返回配置完整的应用实例
     return app
