@@ -151,11 +151,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
         }
 
-        if (error) {
-            errorEl.textContent = error;
-            errorEl.classList.add('is-visible');
-        } else {
-            errorEl.classList.remove('is-visible');
+        // 检查errorEl是否存在，避免null引用错误
+        if (errorEl) {
+            if (error) {
+                errorEl.textContent = error;
+                errorEl.classList.add('is-visible');
+            } else {
+                errorEl.classList.remove('is-visible');
+            }
         }
 
         return !error;

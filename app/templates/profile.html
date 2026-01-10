@@ -10,7 +10,20 @@
     </div>
 </div>
 
-<div class="container">
+<!-- 未登录提示 -->
+<div id="login-required" class="container" style="display: none;">
+    <div class="card">
+        <div class="card__body" style="text-align: center; padding: var(--spacing-2xl);">
+            <div style="font-size: 64px; margin-bottom: var(--spacing-lg);">🔒</div>
+            <h2>请先登录</h2>
+            <p style="color: var(--color-text-secondary); margin-bottom: var(--spacing-xl);">您需要登录后才能查看个人资料</p>
+            <a href="/login?redirect=/profile" class="btn btn--primary btn--lg">立即登录</a>
+        </div>
+    </div>
+</div>
+
+<!-- 已登录内容 -->
+<div id="profile-content" class="container" style="display: none;">
     <div class="grid grid--cols-4">
         <!-- 左侧菜单 -->
         <div style="grid-column: 1 / 2;">
@@ -130,7 +143,7 @@
                     <div class="card__header">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <h2 style="margin: 0;">我的发布</h2>
-                            <a href="/publish" class="btn btn--primary btn--sm">+ 发布新商品</a>
+                            <a href="/publish-item" class="btn btn--primary btn--sm">+ 发布新商品</a>
                         </div>
                     </div>
                     <div class="card__body">
@@ -143,7 +156,7 @@
                             <div class="empty-state__icon">📄</div>
                             <div class="empty-state__title">暂无发布</div>
                             <p class="empty-state__description">您还没有发布过任何商品</p>
-                            <a href="/publish" class="btn btn--primary">立即发布</a>
+                            <a href="/publish-item" class="btn btn--primary">立即发布</a>
                         </div>
                     </div>
                 </div>
@@ -222,23 +235,34 @@
 class ProfilePage {
     constructor() {
         this.user = AuthManager.getUser();
-        if (!this.user) {
-            window.location.href = '/login';
-            return;
-        }
         this.init();
     }
 
     async init() {
+        // 显示/隐藏登录提示和内容区域
+        const loginRequired = document.getElementById('login-required');
+        const profileContent = document.getElementById('profile-content');
+
+        if (!this.user) {
+            // 未登录：显示登录提示，隐藏内容
+            loginRequired.style.display = 'block';
+            profileContent.style.display = 'none';
+            return;
+        }
+
+        // 已登录：显示内容，隐藏登录提示
+        loginRequired.style.display = 'none';
+        profileContent.style.display = 'block';
+
         this.renderProfile();
         this.setupEventListeners();
-        this.loadUserData();
+        await this.loadUserData();
     }
 
     renderProfile() {
         document.getElementById('profile-username').textContent = this.user.username;
         document.getElementById('profile-email').textContent = this.user.email;
-        document.getElementById('profile-created-at').textContent = 
+        document.getElementById('profile-created-at').textContent =
             new Date(this.user.created_at).toLocaleDateString('zh-CN');
     }
 
@@ -246,7 +270,7 @@ class ProfilePage {
         try {
             const response = await API.user.getCurrentUser();
             const user = response.data;
-            
+
             // 更新统计信息
             document.getElementById('stats-published').textContent = user.stats?.published || 0;
             document.getElementById('stats-sold').textContent = user.stats?.sold || 0;
@@ -275,7 +299,7 @@ class ProfilePage {
             } else {
                 document.getElementById('orders-list').style.display = 'block';
                 document.getElementById('orders-empty').style.display = 'none';
-                
+
                 const tbody = document.getElementById('orders-tbody');
                 tbody.innerHTML = orders.map(order => `
                     <tr>
@@ -303,7 +327,7 @@ class ProfilePage {
             } else {
                 document.getElementById('published-list').style.display = 'block';
                 document.getElementById('published-empty').style.display = 'none';
-                
+
                 const container = document.getElementById('published-items');
                 container.innerHTML = items.map(item => `
                     <a href="/items/${item.id}" class="product-card" style="text-decoration: none; color: inherit;">
@@ -332,7 +356,7 @@ class ProfilePage {
             } else {
                 document.getElementById('favorites-list').style.display = 'block';
                 document.getElementById('favorites-empty').style.display = 'none';
-                
+
                 const container = document.getElementById('favorites-items');
                 container.innerHTML = items.map(item => `
                     <a href="/items/${item.id}" class="product-card" style="text-decoration: none; color: inherit;">
@@ -355,10 +379,10 @@ class ProfilePage {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
                 const tabName = e.currentTarget.getAttribute('href').slice(1);
-                
+
                 document.querySelectorAll('.tab-link').forEach(l => l.classList.remove('is-active'));
                 document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
-                
+
                 e.currentTarget.classList.add('is-active');
                 document.getElementById(tabName + '-tab').style.display = 'block';
             });
@@ -389,17 +413,4 @@ document.addEventListener('DOMContentLoaded', () => {
     new ProfilePage();
 });
 </script>
-{% endblock %}
-                    <th>商品</th>
-                    <th>金额</th>
-                    <th>状态</th>
-                    <th>日期</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- 订单历史将在这里显示 -->
-            </tbody>
-        </table>
-    </div>
-</div>
 {% endblock %}

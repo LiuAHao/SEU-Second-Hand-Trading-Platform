@@ -15,12 +15,7 @@ This is **SEU Second-Hand Trading Platform** (东南大学校园二手交易平�
 
 ### Starting the Application
 ```bash
-# Windows (Quick start)
-start-dev.bat
-# or PowerShell
-./start-dev.ps1
-
-# Mac/Linux
+# Windows/Mac/Linux (Direct)
 python run.py
 ```
 
@@ -117,6 +112,31 @@ app/
 - `checkout.html` - Order placement with address selection
 - `profile.html` - User profile and order history
 
+**Important Architecture Pattern: Three-Tier Design**
+This project strictly follows the three-tier architecture:
+
+1. **API Layer** (`app/api/`): HTTP request/response handling only
+   - Uses `@auth_required` decorator for protected routes
+   - Uses `@validate_request` decorator for input validation
+   - Delegates all business logic to services layer
+
+2. **Service Layer** (`app/services/`): Business logic implementation
+   - `OrderService`: Most complex service with transaction handling
+   - `UserService`, `ItemService`, `ReviewService`, `CartService`
+   - All database operations and business rules here
+
+3. **Model Layer** (`app/models.py`): Data models and ORM relationships
+   - 6 tables: User, Item, Order, OrderItem, Address, Review
+   - Uses SQLAlchemy 2.0+ with modern declarative syntax
+
+**Critical Transaction Handling Pattern (order_service.py:30-231)**
+The order creation is the most complex operation:
+- Uses `with_for_update()` to lock inventory rows
+- Validates stock, permissions, and business rules atomically
+- Commits only after all validations pass
+- Automatic rollback on any exception
+- Prevents race conditions in high-concurrent scenarios
+
 ### Key Implementation Status (关键实现状态)
 
 #### ✅ Completed (已完成)
@@ -169,41 +189,44 @@ app/
 - Session-based shopping cart
 - Notification system (toast messages)
 
-#### 🔄 In Progress (进行中)
+#### ✅ Completed (已完成)
 
 **Order Management (`/api/orders/*`):**
-- Order creation endpoint structure defined
-- Transaction processing logic (library structure ready)
-- Cart to order conversion flow
-- Address selection integration
-- Order status workflow (pending → paid → shipped → completed/cancelled)
-
-#### ⏳ Implementation Ready (准备就绪，结构已定义)
-
-The following modules have complete structure/stubs but need method implementations:
-- `OrderService.create_order()` - Key method requiring transaction handling
-- `OrderService.cancel_order()` - Stock rollback logic
-- `Cart API` endpoints - Session management
-- `Orders API` endpoints - Full CRUD + status updates
-- `Reviews API` - Rating/comment system
+- Order creation with complete transaction handling (order_service.py:30-231)
+- Order cancellation with stock rollback using row-level locks (order_service.py:423-484)
+- Order listing, detail retrieval, and status updates
+- Address CRUD operations (create, update, list)
+- Order statistics and pagination
+- Prevents overselling with `SELECT FOR UPDATE` locks
+- Full atomic transaction support with rollback on errors
 
 ### Database Configuration (数据库配置)
 
-Database URI format in `config.py` or `.env`:
-```
-DATABASE_URI=mysql+pymysql://username:password@localhost:3306/seu_trading?charset=utf8mb4
+**Current Database Credentials:**
+- Username: `root`
+- Password: `123456`
+- Database Name: `seu_second_hand`
+- Charset: `utf8mb4_unicode_ci`
+
+Database URI in `app/__init__.py`:
+```python
+SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:root@localhost:3306/seu_second_hand?charset=utf8mb4'
 ```
 
 Required MySQL setup:
 ```bash
 # Create database with UTF-8 support
-mysql> CREATE DATABASE seu_trading CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+mysql> CREATE DATABASE seu_second_hand CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-# Load schema
-mysql seu_trading < database/schema.sql
+# Load schema (no comments version for cleaner import)
+mysql -u root -proot seu_second_hand < database/schema_no_comment.sql
 
-# Load seed data (optional)
-mysql seu_trading < database/seed_data.sql
+# Or load full schema with comments
+mysql -u root -proot seu_second_hand < database/schema.sql
+
+# Verify tables created
+mysql -u root -proot seu_second_hand -e "SHOW TABLES;"
+# Expected: addresses, items, order_items, orders, reviews, users
 ```
 
 ### API Response Format (统一格式)
@@ -332,35 +355,90 @@ Full API documentation: `FRONTEND_API_DOCS.md`
 ## Configuration Notes
 
 **Current State:**
-- Debug mode enabled (`app.run(debug=True)`)
-- JSON responses support Chinese (`JSON_AS_ASCII = False`)
-- Database configuration needs to be added to `config.py`
+- Debug mode enabled in `run.py` (`app.run(debug=True)`)
+- JSON responses support Chinese (`app.config['JSON_AS_ASCII'] = False`)
+- Database URI configured in `app/__init__.py` (not config.py)
+- No `.env` file support currently configured
 - No external services connected (email, payments are mock)
 
+**Database Config Location:**
+- Configuration is in `app/__init__.py`, not `config.py`
+- `config.py` currently only contains comments
+
 **To Add:**
-- MySQL connection credentials in `config.py`
-- SECRET_KEY for session encryption
+- Environment variable support via python-dotenv
+- SECRET_KEY for session encryption (currently hardcoded)
+- JWT secret key configuration
 - Email server config for verification emails
 - Payment gateway integration (currently mock)
 
 ## Common Tasks
 
+### Running Tests
+```bash
+# Run all tests
+pytest tests/ -v
+
+# Run specific API module tests
+pytest tests/test_api/test_orders_api.py -v
+pytest tests/test_api/test_auth_api.py -v
+
+# Run with coverage
+pytest --cov=app tests/ --cov-report=html
+
+# Run specific test function
+pytest tests/test_api/test_orders_api.py::test_create_order -v
+```
+
+**Test Structure:**
+- `tests/test_models.py` - Database model tests
+- `tests/test_api/test_auth_api.py` - Authentication API tests
+- `tests/test_api/test_items_api.py` - Items CRUD API tests
+- `tests/test_api/test_orders_api.py` - Order management API tests (includes concurrent tests)
+- `tests/conftest.py` - Pytest fixtures and test configuration
+
 ### Adding a New API Endpoint
-1. Create function in appropriate `app/api/` module
-2. Follow response format: `{ code, message, data, timestamp }`
-3. Register blueprint in `app/routes.py`
-4. Update `FRONTEND_API_DOCS.md` if user-facing
+1. Create function in appropriate `app/api/` module (auth.py, items.py, orders.py, users.py, reviews.py)
+2. Use decorators: `@auth_required`, `@validate_request` for input validation
+3. Follow response format: `{ code, message, data, timestamp }` using utils/response.py helpers
+4. Implement business logic in `app/services/` layer, not in API routes
+5. Register blueprint in `app/routes.py` if creating new module
+6. Update `FRONTEND_API_DOCS.md` if user-facing
 
 ### Adding a New Page
 1. Create HTML template in `app/templates/`
 2. Extend `base.html` for consistent layout
-3. Add route in `app/routes.py`
+3. Add route in `app/routes.py` (not in API modules)
 4. Update navigation in `base.html` if needed
+5. Add JavaScript in `app/static/js/` if needed
+
+### Working with Transactions
+When modifying order/inventory data, always use transactions:
+```python
+from app.models import db
+from sqlalchemy import select
+
+try:
+    # Lock rows for update (prevents race conditions)
+    stmt = select(Item).where(Item.id == item_id).with_for_update()
+    result = session.execute(stmt)
+    item = result.scalar_one()
+
+    # Modify data
+    item.stock -= quantity
+
+    # Commit transaction
+    db.session.commit()
+except Exception as e:
+    db.session.rollback()
+    raise
+```
 
 ### Database Query Examples
 ```python
-# Using SQLAlchemy ORM (when models are implemented)
-from app.models import User, Item
+# Using SQLAlchemy ORM
+from app.models import User, Item, Order
+from sqlalchemy import select
 
 # Get user by email
 user = User.query.filter_by(email='user@seu.edu.cn').first()
@@ -371,14 +449,66 @@ items = Item.query.filter(
     Item.price.between(0, 100),
     Item.is_active == True
 ).order_by(Item.created_at.desc()).all()
+
+# Modern SQLAlchemy 2.0 style
+stmt = select(Order).where(Order.buyer_id == user_id).order_by(Order.created_at.desc())
+orders = db.session.execute(stmt).scalars().all()
 ```
 
 ## Testing
 
-The project includes comprehensive frontend testing capabilities:
+The project includes comprehensive test coverage:
+
+**Backend Tests:**
+- Located in `tests/` directory
+- Uses pytest framework with fixtures in `conftest.py`
+- Test modules mirror API structure (auth, items, orders)
+- Concurrent order tests verify transaction locking works correctly
+- Model tests verify ORM relationships and validations
+
+**Frontend Testing:**
 - Mock API enables full frontend testing without backend
 - Browser console commands for debugging (see `QUICK_START.md`)
 - Responsive design testing (mobile, tablet, desktop)
 - Form validation testing
 
-See `QUICK_START.md` for detailed testing procedures and console commands.
+**Running All Tests:**
+```bash
+pytest tests/ -v --cov=app
+```
+
+See `QUICK_START.md` for detailed frontend testing procedures.
+
+## Critical Implementation Details
+
+### Order Transaction Flow (order_service.py)
+When creating an order, the system:
+1. Opens database transaction
+2. Locks inventory rows with `SELECT FOR UPDATE`
+3. Validates stock availability and permissions
+4. Calculates total amount atomically
+5. Creates order and order items records
+6. Decrements inventory within same transaction
+7. Commits only if all steps succeed, otherwise rolls back
+
+This prevents:
+- Overselling (multiple users buying last item simultaneously)
+- Inconsistent data (order created but stock not decremented)
+- Lost updates (race conditions in inventory updates)
+
+### Authentication Flow
+1. User registers with `@seu.edu.cn` email validation
+2. Password hashed with bcrypt (rounds=12)
+3. JWT token generated on login (HS256, 168-hour expiry)
+4. Token stored in frontend and sent in Authorization header
+5. `@auth_required` decorator verifies token on protected routes
+6. User ID extracted from token and stored in `g.user_id`
+
+### Error Handling Pattern
+All API responses follow this format (from utils/response.py):
+```python
+success_response(data={}, message="成功")
+error_response(message="错误信息", code=400)
+not_found_response(message="资源不存在")
+validation_response(errors={})
+```

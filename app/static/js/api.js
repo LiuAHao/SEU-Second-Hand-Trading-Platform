@@ -278,6 +278,17 @@ class APIClient {
 const apiClient = new APIClient();
 
 /**
+ * 添加请求拦截器 - 自动注入 Token
+ */
+apiClient.addRequestInterceptor(async (config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  return config;
+});
+
+/**
  * ============================================
  * 用户相关 API
  * ============================================
@@ -291,7 +302,7 @@ const userAPI = {
    * @param {string} userData.email - 邮箱
    * @returns {Promise}
    */
-  register: (userData) => apiClient.post('/users/register', userData),
+  register: (userData) => apiClient.post('/user/register', userData),
 
   /**
    * 用户登录
@@ -300,47 +311,47 @@ const userAPI = {
    * @param {string} credentials.password - 密码
    * @returns {Promise}
    */
-  login: (credentials) => apiClient.post('/users/login', credentials),
+  login: (credentials) => apiClient.post('/user/login', credentials),
 
   /**
    * 用户登出
    * @returns {Promise}
    */
-  logout: () => apiClient.post('/users/logout', {}),
+  logout: () => apiClient.post('/user/logout', {}),
 
   /**
    * 获取当前登录用户信息
    * @returns {Promise}
    */
-  getCurrentUser: () => apiClient.get('/users/me'),
+  getCurrentUser: () => apiClient.get('/user/getCurrentUser'),
 
   /**
    * 获取用户资料
    * @param {number|string} userId - 用户ID
    * @returns {Promise}
    */
-  getUserProfile: (userId) => apiClient.get(`/users/${userId}`),
+  getUserProfile: (userId) => apiClient.get(`/user/getUserProfile/${userId}`),
 
   /**
    * 更新用户资料
    * @param {Object} userData - 更新的用户数据
    * @returns {Promise}
    */
-  updateProfile: (userData) => apiClient.put('/users/profile', userData),
+  updateProfile: (userData) => apiClient.post('/user/updateProfile', userData),
 
   /**
    * 检查用户名是否可用
    * @param {string} username - 用户名
    * @returns {Promise}
    */
-  checkUsername: (username) => apiClient.get('/users/check-username', { username }),
+  checkUsername: (username) => apiClient.get(`/user/checkUsername/${username}`),
 
   /**
    * 检查邮箱是否已注册
    * @param {string} email - 邮箱
    * @returns {Promise}
    */
-  checkEmail: (email) => apiClient.get('/users/check-email', { email }),
+  checkEmail: (email) => apiClient.get(`/user/checkEmail/${email}`),
 };
 
 /**
@@ -355,8 +366,8 @@ const itemAPI = {
    * @param {number} options.limit - 限制数量
    * @returns {Promise}
    */
-  getFeatured: (options = {}) => 
-    apiClient.get('/items/featured', { limit: options.limit || 12 }),
+  getFeatured: (options = {}) =>
+    apiClient.post('/item/getFeatured', { limit: options.limit || 12 }),
 
   /**
    * 搜索商品
@@ -371,7 +382,7 @@ const itemAPI = {
    * @param {string} params.sort - 排序字段
    * @returns {Promise}
    */
-  search: (params) => apiClient.get('/items/search', params),
+  search: (params) => apiClient.post('/item/search', params),
 
   /**
    * 按分类获取商品
@@ -380,14 +391,14 @@ const itemAPI = {
    * @returns {Promise}
    */
   getByCategory: (category, options = {}) =>
-    apiClient.get(`/items/category/${category}`, options),
+    apiClient.post('/item/getByCategory', { category, ...options }),
 
   /**
    * 获取单个商品详情
    * @param {number|string} itemId - 商品ID
    * @returns {Promise}
    */
-  getDetail: (itemId) => apiClient.get(`/items/${itemId}`),
+  getDetail: (itemId) => apiClient.get(`/item/getDetail/${itemId}`),
 
   /**
    * 发布新商品
@@ -400,7 +411,7 @@ const itemAPI = {
    * @param {Array} itemData.images - 图片URL数组
    * @returns {Promise}
    */
-  create: (itemData) => apiClient.post('/items', itemData),
+  create: (itemData) => apiClient.post('/item/create', itemData),
 
   /**
    * 更新商品
@@ -408,14 +419,14 @@ const itemAPI = {
    * @param {Object} itemData - 更新的数据
    * @returns {Promise}
    */
-  update: (itemId, itemData) => apiClient.put(`/items/${itemId}`, itemData),
+  update: (itemId, itemData) => apiClient.post(`/item/update/${itemId}`, itemData),
 
   /**
    * 删除商品
    * @param {number|string} itemId - 商品ID
    * @returns {Promise}
    */
-  delete: (itemId) => apiClient.delete(`/items/${itemId}`),
+  delete: (itemId) => apiClient.post(`/item/delete/${itemId}`, {}),
 
   /**
    * 获取用户发布的商品
@@ -424,7 +435,7 @@ const itemAPI = {
    * @returns {Promise}
    */
   getUserItems: (userId, options = {}) =>
-    apiClient.get(`/users/${userId}/items`, options),
+    apiClient.get(`/user/getUserProfile/${userId}`, options),
 
   /**
    * 检查商品库存
@@ -455,7 +466,7 @@ const cartAPI = {
    * @param {number} item.quantity - 数量
    * @returns {Promise}
    */
-  addItem: (item) => apiClient.post('/cart/items', item),
+  addItem: (item) => apiClient.post('/cart/add', item),
 
   /**
    * 更新购物车商品数量
@@ -464,20 +475,20 @@ const cartAPI = {
    * @returns {Promise}
    */
   updateItem: (itemId, quantity) =>
-    apiClient.patch(`/cart/items/${itemId}`, { quantity }),
+    apiClient.post(`/cart/update/${itemId}`, { quantity }),
 
   /**
    * 移除购物车商品
    * @param {number} itemId - 商品ID
    * @returns {Promise}
    */
-  removeItem: (itemId) => apiClient.delete(`/cart/items/${itemId}`),
+  removeItem: (itemId) => apiClient.post(`/cart/remove/${itemId}`, {}),
 
   /**
    * 清空购物车
    * @returns {Promise}
    */
-  clear: () => apiClient.delete('/cart'),
+  clear: () => apiClient.post('/cart/clear', {}),
 
   /**
    * 获取购物车统计信息
@@ -525,7 +536,7 @@ const orderAPI = {
    * @param {number|string} orderId - 订单ID
    * @returns {Promise}
    */
-  cancel: (orderId) => apiClient.post(`/orders/${orderId}/cancel`, {}),
+  cancel: (orderId) => apiClient.delete(`/orders/${orderId}`),
 
   /**
    * 获取订单支付二维码
@@ -580,28 +591,34 @@ const categoryAPI = {
  */
 const recommendAPI = {
   /**
-   * 获取热门商品
+   * 获取热门商品（使用商品API）
    * @param {Object} options - 查询选项
    * @returns {Promise}
    */
   getPopular: (options = {}) =>
-    apiClient.get('/recommend/popular', options),
+    apiClient.get('/item/getFeatured', { limit: options.limit || 12 }),
 
   /**
-   * 获取最新商品
+   * 获取最新商品（使用商品搜索API）
    * @param {Object} options - 查询选项
    * @returns {Promise}
    */
   getLatest: (options = {}) =>
-    apiClient.get('/recommend/latest', options),
+    apiClient.post('/item/search', {
+      sort: 'created_at_desc',
+      limit: options.limit || 12
+    }),
 
   /**
-   * 获取用户个性化推荐
+   * 获取用户个性化推荐（使用商品搜索API）
    * @param {Object} options - 查询选项
    * @returns {Promise}
    */
   getPersonalized: (options = {}) =>
-    apiClient.get('/recommend/personalized', options),
+    apiClient.post('/item/search', {
+      sort: 'popular',
+      limit: options.limit || 12
+    }),
 
   /**
    * 获取搜索建议

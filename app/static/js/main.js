@@ -317,6 +317,7 @@ const AuthManager = {
     if (user) {
       userMenuEl.innerHTML = `
         <span>欢迎，${user.username}</span>
+        <a href="/publish-item" class="btn btn--primary btn--sm">发布商品</a>
         <a href="/cart" class="navbar__link">
           购物车
           <span class="navbar__badge" style="display: none;">0</span>
@@ -340,6 +341,7 @@ const AuthManager = {
       });
     } else {
       userMenuEl.innerHTML = `
+        <a href="/login?redirect=/publish-item" class="btn btn--primary btn--sm">发布商品</a>
         <a href="/login" class="navbar__link">登录</a>
         <a href="/register" class="btn btn--primary">注册</a>
       `;

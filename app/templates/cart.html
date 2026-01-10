@@ -101,17 +101,6 @@
                 </div>
             </div>
 
-            <!-- 相关推荐 -->
-            <div class="card" style="margin-top: var(--spacing-lg);">
-                <div class="card__header">
-                    <h3 style="margin: 0;">猜你喜欢</h3>
-                </div>
-                <div class="card__body">
-                    <div id="recommendations" class="flex flex--col gap-md">
-                        <!-- 动态填充 -->
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 </div>
@@ -149,12 +138,11 @@ class CartPage {
         }
 
         this.updateOrderSummary();
-        this.loadRecommendations();
     }
 
     renderCartTable() {
         const tbody = document.getElementById('cart-tbody');
-        
+
         tbody.innerHTML = this.cart.map(item => `
             <tr>
                 <td>
@@ -166,12 +154,12 @@ class CartPage {
                 <td>
                     <div style="display: flex; gap: var(--spacing-sm); align-items: center;">
                         <button class="btn btn--secondary btn--sm" data-action="decrease" data-item-id="${item.itemId}" style="width: 30px; padding: 0;">−</button>
-                        <input 
-                            type="number" 
-                            value="${item.quantity}" 
-                            min="1" 
-                            max="99" 
-                            class="form-input" 
+                        <input
+                            type="number"
+                            value="${item.quantity}"
+                            min="1"
+                            max="99"
+                            class="form-input"
                             style="width: 50px; text-align: center; padding: var(--spacing-xs) var(--spacing-sm);"
                             data-item-id="${item.itemId}"
                             data-action="update"
@@ -251,25 +239,6 @@ class CartPage {
             }
         });
     }
-
-    async loadRecommendations() {
-        try {
-            const response = await API.recommend.getPersonalized({ limit: 3 });
-            const container = document.getElementById('recommendations');
-
-            if (response.data && response.data.length > 0) {
-                container.innerHTML = response.data.map(item => `
-                    <a href="/items/${item.id}" style="padding: var(--spacing-md); border: 1px solid var(--color-border); border-radius: var(--radius-lg); text-decoration: none; color: inherit; transition: all var(--duration-fast);" class="text-decoration-none">
-                        <img src="${item.image || '/static/images/placeholder.png'}" alt="${item.title}" style="width: 100%; height: 100px; object-fit: cover; border-radius: var(--radius-md); margin-bottom: var(--spacing-sm);">
-                        <div class="font-semibold text-sm">${item.title}</div>
-                        <div class="text-primary font-bold">¥${item.price.toFixed(2)}</div>
-                    </a>
-                `).join('');
-            }
-        } catch (error) {
-            console.error('加载推荐失败:', error);
-        }
-    }
 }
 
 // 初始化
@@ -277,10 +246,4 @@ document.addEventListener('DOMContentLoaded', () => {
     new CartPage();
 });
 </script>
-{% endblock %}
-    <div class="cart-summary">
-        <p>总计: ¥<span id="total-price">0.00</span></p>
-        <button id="checkout">结算</button>
-    </div>
-</div>
 {% endblock %}

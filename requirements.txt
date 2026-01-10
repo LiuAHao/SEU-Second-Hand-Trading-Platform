@@ -1,10 +1,10 @@
 # Python依赖包 - 优化版本
-Flask>=3.0.0
+Flask==2.3.3
 Flask-SQLAlchemy>=3.1.1
 Flask-Login>=0.6.3  # 升级到支持 Flask 3.0.0 的版本
 Flask-WTF>=1.2.0
 Flask-Mail>=0.9.1
-Werkzeug>=2.3.0,<3.1.0
+Werkzeug==2.3.7
 SQLAlchemy>=2.0.23
 PyMySQL>=1.1.0
 python-dotenv>=1.0.0

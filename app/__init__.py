@@ -39,8 +39,8 @@ def create_app():
         'DATABASE_URI',  # 从 .env 文件读取的配置键
         # 默认值（备用，若 .env 未配置，可临时使用，生产环境需删除）
 
-        #此处默认密码更改为 root，请根据实际情况修改
-        'mysql+pymysql://root:root@localhost:3306/SEU_Second_Hand?charset=utf8mb4'  
+        #此处默认密码更改为 123456，请根据实际情况修改
+        'mysql+pymysql://root:123456@localhost:3306/SEU_Second_Hand?charset=utf8mb4'  
     )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # 关闭对象修改跟踪，消除警告、提升性能
     # 可选：开启数据库查询日志（开发环境调试用）

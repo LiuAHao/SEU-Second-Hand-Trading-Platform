@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+
+{% block title %}发布商品 - 东南大学校园二手交易平台{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1>发布商品</h1>
+        <p style="color: rgba(255, 255, 255, 0.9); margin-bottom: 0;">发布您的二手商品，让校园师生看到</p>
+    </div>
+</div>
+
+<div class="container">
+    <div class="card" style="max-width: 800px; margin: var(--spacing-2xl) auto;">
+        <div class="card__body">
+            <form id="publish-form">
+                <!-- 基本信息 -->
+                <div style="margin-bottom: var(--spacing-2xl);">
+                    <h2 style="font-size: var(--font-size-xl); margin-bottom: var(--spacing-lg); color: var(--color-primary);">基本信息</h2>
+
+                    <!-- 商品标题 -->
+                    <div class="form-group">
+                        <label class="form-label" for="title">商品标题 <span style="color: var(--color-error);">*</span></label>
+                        <input
+                            type="text"
+                            id="title"
+                            name="title"
+                            class="form-input"
+                            placeholder="例如：苹果 MacBook Pro 13英寸 2021年款 M1芯片"
+                            required
+                            maxlength="100"
+                        >
+                        <div class="form-hint">建议包含品牌、型号、主要特征，最多100字</div>
+                    </div>
+
+                    <!-- 商品分类 -->
+                    <div class="form-group">
+                        <label class="form-label" for="category">商品分类 <span style="color: var(--color-error);">*</span></label>
+                        <select id="category" name="category" class="form-input" required>
+                            <option value="">请选择分类</option>
+                            <option value="digital">数码产品</option>
+                            <option value="books">图书教材</option>
+                            <option value="clothing">服装鞋包</option>
+                            <option value="sports">运动户外</option>
+                            <option value="dorm">宿舍用品</option>
+                            <option value="other">其他</option>
+                        </select>
+                    </div>
+
+                    <!-- 价格和库存 -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-lg);">
+                        <div class="form-group">
+                            <label class="form-label" for="price">价格（元）<span style="color: var(--color-error);">*</span></label>
+                            <input
+                                type="number"
+                                id="price"
+                                name="price"
+                                class="form-input"
+                                placeholder="0.00"
+                                min="0.01"
+                                step="0.01"
+                                required
+                            >
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="stock">库存数量<span style="color: var(--color-error);">*</span></label>
+                            <input
+                                type="number"
+                                id="stock"
+                                name="stock"
+                                class="form-input"
+                                placeholder="1"
+                                min="1"
+                                max="999"
+                                value="1"
+                                required
+                            >
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 商品描述 -->
+                <div style="margin-bottom: var(--spacing-2xl); padding-top: var(--spacing-xl); border-top: 1px solid var(--color-border);">
+                    <h2 style="font-size: var(--font-size-xl); margin-bottom: var(--spacing-lg); color: var(--color-primary);">商品描述</h2>
+
+                    <div class="form-group">
+                        <label class="form-label" for="description">详细描述 <span style="color: var(--color-error);">*</span></label>
+                        <textarea
+                            id="description"
+                            name="description"
+                            class="form-input"
+                            rows="6"
+                            placeholder="详细描述商品的状况、功能、配件、使用时长等信息..."
+                            required
+                            minlength="10"
+                            maxlength="2000"
+                        ></textarea>
+                        <div class="form-hint">至少10个字，最多2000字。请如实描述商品的新旧程度和功能状况</div>
+                    </div>
+                </div>
+
+                <!-- 商品图片 -->
+                <div style="margin-bottom: var(--spacing-2xl); padding-top: var(--spacing-xl); border-top: 1px solid var(--color-border);">
+                    <h2 style="font-size: var(--font-size-xl); margin-bottom: var(--spacing-lg); color: var(--color-primary);">商品图片</h2>
+
+                    <div class="form-group">
+                        <label class="form-label">图片上传 <span style="color: var(--color-error);">*</span></label>
+                        <div id="image-upload-area" style="border: 2px dashed var(--color-border); border-radius: var(--radius-lg); padding: var(--spacing-2xl); text-align: center; cursor: pointer; transition: all var(--duration-fast);">
+                            <div style="font-size: 48px; margin-bottom: var(--spacing-md);">📷</div>
+                            <p style="margin: 0 0 var(--spacing-sm); font-weight: 500;">点击或拖拽图片到此处上传</p>
+                            <p class="text-muted" style="font-size: var(--font-size-sm); margin: 0;">支持 JPG、PNG 格式，单张不超过5MB，最多上传9张</p>
+                            <input type="file" id="image-input" accept="image/jpeg,image/png" multiple style="display: none;">
+                        </div>
+
+                        <!-- 图片预览区域 -->
+                        <div id="image-previews" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacing-md); margin-top: var(--spacing-lg);"></div>
+                    </div>
+                </div>
+
+                <!-- 交易信息 -->
+                <div style="margin-bottom: var(--spacing-2xl); padding-top: var(--spacing-xl); border-top: 1px solid var(--color-border);">
+                    <h2 style="font-size: var(--font-size-xl); margin-bottom: var(--spacing-lg); color: var(--color-primary);">交易信息</h2>
+
+                    <div class="form-group">
+                        <label class="form-label" for="location">交易地点</label>
+                        <input
+                            type="text"
+                            id="location"
+                            name="location"
+                            class="form-input"
+                            placeholder="例如：梅园宿舍楼下"
+                            maxlength="100"
+                        >
+                        <div class="form-hint">建议填写校园内具体的交易地点</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="contact">联系方式</label>
+                        <input
+                            type="text"
+                            id="contact"
+                            name="contact"
+                            class="form-input"
+                            placeholder="手机号或微信号（可选）"
+                            maxlength="50"
+                        >
+                        <div class="form-hint">留空则使用注册时的联系方式</div>
+                    </div>
+                </div>
+
+                <!-- 提交按钮 -->
+                <div style="display: flex; gap: var(--spacing-md); padding-top: var(--spacing-xl); border-top: 1px solid var(--color-border);">
+                    <button type="submit" class="btn btn--primary" style="flex: 1;">发布商品</button>
+                    <button type="button" id="cancel-btn" class="btn btn--secondary">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/**
+ * 发布商品页面逻辑
+ */
+class PublishItemPage {
+    constructor() {
+        this.images = []; // 存储图片URL
+        this.init();
+    }
+
+    init() {
+        this.setupEventListeners();
+        this.checkLogin();
+    }
+
+    checkLogin() {
+        if (!AuthManager.isLoggedIn()) {
+            NotificationManager.warning('请先登录后发布商品');
+            setTimeout(() => {
+                window.location.href = '/login?redirect=/publish-item';
+            }, 1500);
+        }
+    }
+
+    setupEventListeners() {
+        // 图片上传
+        const uploadArea = document.getElementById('image-upload-area');
+        const imageInput = document.getElementById('image-input');
+
+        uploadArea.addEventListener('click', () => imageInput.click());
+
+        imageInput.addEventListener('change', (e) => this.handleImageSelect(e));
+
+        // 拖拽上传
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = 'var(--color-primary)';
+            uploadArea.style.backgroundColor = 'rgba(0, 123, 255, 0.05)';
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.borderColor = 'var(--color-border)';
+            uploadArea.style.backgroundColor = 'transparent';
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = 'var(--color-border)';
+            uploadArea.style.backgroundColor = 'transparent';
+            this.handleImageSelect(e);
+        });
+
+        // 表单提交
+        document.getElementById('publish-form').addEventListener('submit', (e) => this.handleSubmit(e));
+
+        // 取消按钮
+        document.getElementById('cancel-btn').addEventListener('click', () => {
+            if (confirm('确定要取消发布吗？已填写的内容将不会保存。')) {
+                window.history.back();
+            }
+        });
+    }
+
+    handleImageSelect(event) {
+        const files = event.target.files || event.dataTransfer.files;
+
+        if (this.images.length + files.length > 9) {
+            NotificationManager.error('最多只能上传9张图片');
+            return;
+        }
+
+        Array.from(files).forEach(file => {
+            if (!file.type.match('image.*')) {
+                NotificationManager.error(`${file.name} 不是有效的图片文件`);
+                return;
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                NotificationManager.error(`${file.name} 超过5MB限制`);
+                return;
+            }
+
+            this.uploadImage(file);
+        });
+    }
+
+    uploadImage(file) {
+        LoadingManager.show('正在上传图片...');
+
+        // 模拟图片上传（实际项目中应该上传到服务器或云存储）
+        setTimeout(() => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                this.images.push(e.target.result);
+                this.renderImages();
+                LoadingManager.hide();
+            };
+            reader.readAsDataURL(file);
+        }, 500);
+    }
+
+    renderImages() {
+        const container = document.getElementById('image-previews');
+        container.innerHTML = this.images.map((img, index) => `
+            <div style="position: relative; aspect-ratio: 1; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--color-border);">
+                <img src="${img}" alt="商品图片" style="width: 100%; height: 100%; object-fit: cover;">
+                <button type="button" class="btn btn--danger btn--sm" data-index="${index}"
+                    style="position: absolute; top: var(--spacing-sm); right: var(--spacing-sm); padding: var(--spacing-xs) var(--spacing-sm);">
+                    ✕
+                </button>
+                ${index === 0 ? '<div style="position: absolute; bottom: var(--spacing-sm); left: var(--spacing-sm); background: rgba(0, 0, 0, 0.7); color: white; padding: var(--spacing-xs) var(--spacing-sm); font-size: var(--font-size-sm); border-radius: var(--radius-sm);">封面</div>' : ''}
+            </div>
+        `).join('');
+
+        // 绑定删除按钮事件
+        container.querySelectorAll('button[data-index]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.images.splice(parseInt(btn.dataset.index), 1);
+                this.renderImages();
+            });
+        });
+    }
+
+    async handleSubmit(e) {
+        e.preventDefault();
+
+        // 验证
+        if (this.images.length === 0) {
+            NotificationManager.error('请至少上传一张商品图片');
+            return;
+        }
+
+        const formData = new FormData(e.target);
+        const itemData = {
+            title: formData.get('title').trim(),
+            category: formData.get('category'),
+            price: parseFloat(formData.get('price')),
+            stock: parseInt(formData.get('stock')),
+            description: formData.get('description').trim(),
+            images: this.images,
+            location: formData.get('location')?.trim() || '',
+            contact: formData.get('contact')?.trim() || ''
+        };
+
+        LoadingManager.show('正在发布商品...');
+
+        try {
+            const response = await API.item.create(itemData);
+            LoadingManager.hide();
+            NotificationManager.success('商品发布成功！');
+            setTimeout(() => {
+                window.location.href = '/profile?tab=published';
+            }, 2000);
+        } catch (error) {
+            LoadingManager.hide();
+            if (error.data?.message) {
+                NotificationManager.error(error.data.message);
+            } else {
+                NotificationManager.error('发布失败，请稍后重试');
+            }
+        }
+    }
+}
+
+// 初始化
+document.addEventListener('DOMContentLoaded', () => {
+    new PublishItemPage();
+});
+</script>
+{% endblock %}

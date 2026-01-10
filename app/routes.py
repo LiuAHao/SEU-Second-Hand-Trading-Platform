@@ -75,6 +75,11 @@ def register_routes(app):
     def publish():
         """如何发布商品页"""
         return render_template('publish.html')
+
+    @app.route('/publish-item')
+    def publish_item():
+        """发布商品表单页"""
+        return render_template('publish_item.html')
     
     @app.route('/buying-guide')
     def buying_guide():

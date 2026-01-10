@@ -24,9 +24,9 @@ class User(db.Model):
 
     # 索引定义（匹配schema.sql）
     __table_args__ = (
-        db.Index('idx_username', 'username'),
-        db.Index('idx_email', 'email'),
-        db.Index('idx_created_at', 'created_at'),
+        db.Index('idx_users_username', 'username'),
+        db.Index('idx_users_email', 'email'),
+        db.Index('idx_users_created_at', 'created_at'),
     )
 
     # 模型关联关系（正向/反向查询，级联操作）
@@ -82,10 +82,10 @@ class Item(db.Model):
 
     # 索引定义（匹配schema.sql）
     __table_args__ = (
-        db.Index('idx_seller_id', 'seller_id'),
-        db.Index('idx_category', 'category'),
-        db.Index('idx_price', 'price'),
-        db.Index('idx_created_at', 'created_at'),
+        db.Index('idx_items_seller_id', 'seller_id'),
+        db.Index('idx_items_category', 'category'),
+        db.Index('idx_items_price', 'price'),
+        db.Index('idx_items_created_at', 'created_at'),
         # 全文索引在SQLAlchemy中通常通过数据库直接创建，此处仅做标记
         # db.Index('idx_title_description', 'title', 'description', postgresql_using='gin')
     )
@@ -155,10 +155,10 @@ class Order(db.Model):
     
     # 索引定义
     __table_args__ = (
-        db.Index('idx_buyer_id', 'buyer_id'),
-        db.Index('idx_seller_id', 'seller_id'),
-        db.Index('idx_status', 'status'),
-        db.Index('idx_created_at', 'created_at'),
+        db.Index('idx_orders_buyer_id', 'buyer_id'),
+        db.Index('idx_orders_seller_id', 'seller_id'),
+        db.Index('idx_orders_status', 'status'),
+        db.Index('idx_orders_created_at', 'created_at'),
         db.UniqueConstraint('order_number', name='uq_order_number'),
     )
     
@@ -206,8 +206,8 @@ class OrderItem(db.Model):
 
     # 索引定义（匹配数据库）
     __table_args__ = (
-        db.Index('idx_order_id', 'order_id'),
-        db.Index('idx_item_id', item_id),
+        db.Index('idx_order_items_order_id', 'order_id'),
+        db.Index('idx_order_items_item_id', 'item_id'),
     )
 
     def __repr__(self):
@@ -232,7 +232,7 @@ class Address(db.Model):
 
     # 索引定义（匹配schema.sql）
     __table_args__ = (
-        db.Index('idx_user_id', 'user_id'),
+        db.Index('idx_addresses_user_id', 'user_id'),
     )
 
     def __repr__(self):
@@ -255,8 +255,8 @@ class Review(db.Model):
     # 约束与索引（匹配schema.sql）
     __table_args__ = (
         db.CheckConstraint('rating BETWEEN 1 AND 5', name='check_rating_range'),
-        db.Index('idx_item_id', 'item_id'),
-        db.Index('idx_reviewer_id', 'reviewer_id'),
+        db.Index('idx_reviews_item_id', 'item_id'),
+        db.Index('idx_reviews_reviewer_id', 'reviewer_id'),
     )
 
     def __repr__(self):
