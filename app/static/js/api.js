@@ -41,6 +41,7 @@ const STATUS_CODE_MAP = {
   401: { type: ERROR_TYPES.AUTH_ERROR, message: '未授权，请登录' },
   403: { type: ERROR_TYPES.AUTH_ERROR, message: '禁止访问' },
   404: { type: ERROR_TYPES.SERVER_ERROR, message: '资源不存在' },
+  405: { type: ERROR_TYPES.VALIDATION_ERROR, message: '请求方法不被允许' },
   500: { type: ERROR_TYPES.SERVER_ERROR, message: '服务器内部错误' },
   503: { type: ERROR_TYPES.SERVER_ERROR, message: '服务暂时不可用' },
 };
@@ -270,6 +271,43 @@ class APIClient {
   async delete(url) {
     return this.request('DELETE', url);
   }
+
+  /**
+   * 上传文件（FormData）
+   */
+  async upload(url, formData) {
+    try {
+      let config = {
+        method: 'POST',
+        url: `${this.baseURL}${url}`,
+        headers: {},
+        body: formData,
+      };
+
+      // 执行请求拦截器（可注入 Token）
+      config = await this.executeRequestInterceptors(config);
+
+      const response = await fetch(config.url, {
+        method: config.method,
+        headers: config.headers,
+        body: config.body,
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        const error = this.handleHTTPError(response.status, data);
+        throw error;
+      }
+
+      const responseData = await response.json();
+      const validatedData = this.validateResponse(responseData);
+      const finalData = await this.executeResponseInterceptors(validatedData);
+      return finalData;
+    } catch (error) {
+      const handledError = await this.executeErrorInterceptors(error);
+      throw handledError;
+    }
+  }
 }
 
 /**
@@ -435,7 +473,7 @@ const itemAPI = {
    * @returns {Promise}
    */
   getUserItems: (userId, options = {}) =>
-    apiClient.get(`/user/getUserProfile/${userId}`, options),
+    apiClient.post('/item/search', { seller_id: userId, sort: 'latest', limit: options.limit || 12, page: options.page || 1 }),
 
   /**
    * 检查商品库存
@@ -665,10 +703,25 @@ const addressAPI = {
   delete: (addressId) => apiClient.delete(`/addresses/${addressId}`),
 
   /**
-   * 获取校园配送地址
+   * 设置默认地址
+   * @param {number|string} addressId - 地址ID
    * @returns {Promise}
    */
-  getCampusAddresses: () => apiClient.get('/addresses/campus-locations'),
+  setDefault: (addressId) => apiClient.post(`/addresses/${addressId}/default`, {}),
+};
+
+/**
+ * ============================================
+ * 上传相关 API
+ * ============================================
+ */
+const uploadAPI = {
+  uploadImage: (file, type = 'item') => {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('type', type);
+    return apiClient.upload('/upload/image', fd);
+  },
 };
 
 /**
@@ -684,6 +737,7 @@ const API = {
   category: categoryAPI,
   recommend: recommendAPI,
   address: addressAPI,
+   upload: uploadAPI,
   client: apiClient,
   ERROR_TYPES,
 };

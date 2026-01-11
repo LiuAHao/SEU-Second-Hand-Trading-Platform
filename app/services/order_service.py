@@ -611,6 +611,24 @@ class OrderService:
             db.session.rollback()
             logger.error(f"更新地址失败: {str(e)}")
             return False, f"更新地址失败: {str(e)}"
+
+    @staticmethod
+    def delete_address(user_id, address_id):
+        """删除配送地址"""
+        try:
+            address = db.session.get(Address, address_id)
+            if not address:
+                return False, "地址不存在"
+            if address.user_id != user_id:
+                return False, "无权删除此地址"
+
+            db.session.delete(address)
+            db.session.commit()
+            return True, "删除成功"
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"删除地址失败: {str(e)}")
+            return False, f"删除地址失败: {str(e)}"
     
     @staticmethod
     def get_statistics(user_id):

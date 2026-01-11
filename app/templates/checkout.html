@@ -35,16 +35,30 @@
                             <h4 style="margin-bottom: var(--spacing-md);">添加新地址</h4>
                             <div class="grid grid--cols-2">
                                 <div class="form-group">
-                                    <label class="form-label">校区/宿舍楼</label>
-                                    <input type="text" name="building" class="form-input" placeholder="如：九龙湖宿舍 A 栋" required>
+                                    <label class="form-label">收货人</label>
+                                    <input type="text" name="recipient_name" class="form-input" placeholder="请填写收货人" required>
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label">房间号</label>
-                                    <input type="text" name="room" class="form-input" placeholder="如：405" required>
+                                    <label class="form-label">手机号</label>
+                                    <input type="text" name="phone" class="form-input" placeholder="请填写手机号" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">城市</label>
+                                    <input type="text" name="city" class="form-input" placeholder="如：南京" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">区/宿舍楼</label>
+                                    <input type="text" name="district" class="form-input" placeholder="如：九龙湖宿舍 A 栋" required>
                                 </div>
                                 <div class="form-group" style="grid-column: 1 / -1;">
-                                    <label class="form-label">详细说明</label>
-                                    <input type="text" name="details" class="form-input" placeholder="请输入便于找到的标志（可选）">
+                                    <label class="form-label">详细地址</label>
+                                    <input type="text" name="detail" class="form-input" placeholder="楼层、房间号等" required>
+                                </div>
+                                <div class="form-group" style="grid-column: 1 / -1;">
+                                    <label class="form-checkbox" style="display: inline-flex; align-items: center; gap: 8px;">
+                                        <input type="checkbox" name="is_default">
+                                        设为默认地址
+                                    </label>
                                 </div>
                             </div>
                             <button type="button" id="cancel-new-address" class="btn btn--secondary">取消</button>
@@ -225,8 +239,8 @@ class CheckoutPage {
 
     async loadAddresses() {
         try {
-            const response = await API.address.getCampusAddresses();
-            this.addresses = response.data || [];
+            const response = await API.address.getList();
+            this.addresses = Array.isArray(response.data) ? response.data : (response.data?.items || []);
             this.renderAddresses();
         } catch (error) {
             console.error('加载地址失败:', error);
@@ -240,23 +254,33 @@ class CheckoutPage {
         if (this.addresses.length === 0) {
             container.innerHTML = `
                 <div class="alert alert--warning">
-                    请选择校园配送地点或添加新地址
+                    暂无地址，请添加收货地址
                 </div>
             `;
             return;
         }
 
-        container.innerHTML = this.addresses.map((addr, index) => `
-            <label style="display: block; padding: var(--spacing-md); border: 2px solid ${index === 0 ? 'var(--color-primary)' : 'var(--color-border)'}; border-radius: var(--radius-lg); margin-bottom: var(--spacing-sm); cursor: pointer;">
-                <input type="radio" name="address" value="${addr.id}" ${index === 0 ? 'checked' : ''} required>
-                <strong>${addr.name}</strong>
+        container.innerHTML = this.addresses.map((addr) => `
+            <label style="display: block; padding: var(--spacing-md); border: 2px solid ${addr.is_default ? 'var(--color-primary)' : 'var(--color-border)'}; border-radius: var(--radius-lg); margin-bottom: var(--spacing-sm); cursor: pointer;">
+                <input type="radio" name="address" value="${addr.id}" ${addr.is_default ? 'checked' : ''} required>
+                <div style="display:flex; justify-content: space-between; align-items:center;">
+                    <div><strong>${addr.recipient_name}</strong> ${addr.phone}</div>
+                    ${addr.is_default ? '<span class="badge badge--primary">默认</span>' : ''}
+                </div>
                 <div style="font-size: var(--font-size-sm); color: var(--color-text-secondary); margin-top: var(--spacing-xs);">
-                    ${addr.building} ${addr.details ? '- ' + addr.details : ''}
+                    ${addr.full_address || addr.detail}
                 </div>
             </label>
         `).join('');
 
-        this.selectedAddressId = this.addresses[0]?.id;
+        const defaultAddr = this.addresses.find(a => a.is_default) || this.addresses[0];
+        this.selectedAddressId = defaultAddr?.id || null;
+
+        container.querySelectorAll('input[name="address"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                this.selectedAddressId = e.target.value;
+            });
+        });
     }
 
     renderOrderItems() {
@@ -279,14 +303,67 @@ class CheckoutPage {
         document.getElementById('summary-total').textContent = stats.total;
     }
 
-    setupEventListeners() {
-        // 地址选择
-        document.querySelectorAll('input[name="address"]').forEach(radio => {
-            radio.addEventListener('change', (e) => {
-                this.selectedAddressId = e.target.value;
-            });
-        });
+    async addNewAddress() {
+        const form = document.getElementById('new-address-form');
+        const getVal = (name) => form.querySelector(`[name="${name}"]`).value.trim();
+        const recipient_name = getVal('recipient_name');
+        const phone = getVal('phone');
+        const city = getVal('city');
+        const district = getVal('district');
+        const detail = getVal('detail');
+        const is_default = form.querySelector('[name="is_default"]').checked;
 
+        if (!recipient_name || !phone || !city || !district || !detail) {
+            NotificationManager.error('请完整填写收货地址信息');
+            return;
+        }
+
+        LoadingManager.show('正在保存地址...');
+        try {
+            const resp = await API.address.add({
+                recipient_name,
+                phone,
+                city,
+                district,
+                detail,
+                is_default,
+            });
+
+            if (resp.data) {
+                const saved = {
+                    ...resp.data,
+                    full_address: `${resp.data.city || ''}${resp.data.district || ''}${resp.data.detail || ''}`
+                };
+                this.addresses = [saved, ...this.addresses];
+                if (saved.is_default) {
+                    this.addresses = this.addresses.map(addr => ({
+                        ...addr,
+                        is_default: addr.id === saved.id
+                    }));
+                }
+                this.renderAddresses();
+                form.querySelectorAll('input').forEach(input => {
+                    if (input.type === 'checkbox') {
+                        input.checked = false;
+                    } else {
+                        input.value = '';
+                    }
+                });
+                form.style.display = 'none';
+                NotificationManager.success('地址已添加');
+            }
+        } catch (error) {
+            if (error?.data?.message) {
+                NotificationManager.error(error.data.message);
+            } else {
+                NotificationManager.error('保存地址失败');
+            }
+        } finally {
+            LoadingManager.hide();
+        }
+    }
+
+    setupEventListeners() {
         // 添加新地址
         document.getElementById('add-new-address').addEventListener('click', () => {
             document.getElementById('new-address-form').style.display = 'block';
@@ -297,16 +374,15 @@ class CheckoutPage {
         });
 
         document.getElementById('confirm-new-address').addEventListener('click', () => {
-            // 这里可以添加逻辑来保存新地址
-            NotificationManager.success('地址已添加');
-            document.getElementById('new-address-form').style.display = 'none';
+            this.addNewAddress();
         });
 
         // 表单提交
         document.getElementById('checkout-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            if (!this.selectedAddressId) {
+            const addressId = parseInt(this.selectedAddressId, 10);
+            if (!addressId) {
                 NotificationManager.error('请选择配送地址');
                 return;
             }
@@ -318,11 +394,11 @@ class CheckoutPage {
             try {
                 const orderData = {
                     items: this.cart.map(item => ({
-                        itemId: item.itemId,
+                        item_id: item.itemId,
                         quantity: item.quantity,
                     })),
-                    deliveryAddress: this.selectedAddressId,
-                    paymentMethod: formData.get('payment_method'),
+                    address_id: addressId,
+                    payment_method: formData.get('payment_method'),
                     notes: formData.get('notes'),
                 };
 

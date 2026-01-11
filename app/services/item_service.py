@@ -46,7 +46,7 @@ class ItemService:
     @staticmethod
     def search_items(query: str, search_type: str, page: int = 1, limit: int = 12,
                      category: str = None, min_price: float = None, max_price: float = None,
-                     sort: str = 'latest'):
+                     sort: str = 'latest', seller_id: int = None):
         """
         搜索商品
         :param query: 搜索关键词
@@ -76,6 +76,10 @@ class ItemService:
         # 分类过滤
         if category and category.strip():
             query_filter.append(Item.category == category.strip())
+
+        # 按卖家过滤
+        if seller_id:
+            query_filter.append(Item.seller_id == seller_id)
 
         # 价格过滤
         if min_price is not None and min_price >= 0:
@@ -227,6 +231,8 @@ class ItemService:
             return {'success': False, 'message': '商品价格必须大于0'}
         if stock < 0:
             return {'success': False, 'message': '库存数量不能为负数'}
+        if image_url and len(image_url) > 255:
+            return {'success': False, 'message': '图片链接过长，请使用网络图片URL（≤255字符），不要直接粘贴Base64'}
 
         # 创建商品
         try:
@@ -284,7 +290,10 @@ class ItemService:
         if 'category' in item_data and item_data['category'].strip():
             item.category = item_data['category'].strip()
         if 'images' in item_data and item_data['images']:
-            item.image_url = item_data['images'][0]  # 更新主图
+            new_url = item_data['images'][0]
+            if len(new_url) > 255:
+                return {'success': False, 'message': '图片链接过长，请使用网络图片URL（≤255字符）'}
+            item.image_url = new_url  # 更新主图
 
         item.updated_at = datetime.now()
 

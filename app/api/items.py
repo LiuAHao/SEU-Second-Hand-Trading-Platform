@@ -10,11 +10,15 @@ from app.middleware.auth_middleware import auth_required
 items_bp = Blueprint('items', __name__, url_prefix='/api/item')
 
 # -------------------------- 1. 获取首页推荐商品 --------------------------
-@items_bp.route('/getFeatured', methods=['POST'])
+@items_bp.route('/getFeatured', methods=['POST', 'GET'])
 def get_featured():
     """API.item.getFeatured 接口实现"""
-    data = request.json or {}
-    limit = data.get('limit', 12)
+    # 兼容 GET/POST，两种方式都支持 limit 参数
+    if request.method == 'GET':
+        limit = request.args.get('limit', default=12, type=int)
+    else:
+        data = request.json or {}
+        limit = data.get('limit', 12)
 
     # 验证limit参数
     if not isinstance(limit, int) or limit <= 0:
@@ -44,6 +48,7 @@ def search():
     min_price = data.get('minPrice', None)
     max_price = data.get('maxPrice', None)
     sort = data.get('sort', 'latest').strip()
+    seller_id = data.get('seller_id', None)
 
     # 验证分页参数
     if not isinstance(page, int) or page <= 0:
@@ -68,7 +73,8 @@ def search():
         category=category if category else None,
         min_price=min_price,
         max_price=max_price,
-        sort=sort
+        sort=sort,
+        seller_id=seller_id
     )
     if not result['success']:
         return APIResponse.error(message=result['message'])

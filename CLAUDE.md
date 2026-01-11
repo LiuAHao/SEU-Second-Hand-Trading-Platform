@@ -21,13 +21,20 @@ python run.py
 
 The app runs on `http://localhost:5000` with debug mode enabled.
 
-### Database Setup
+### Database Setup (v2.0 推荐)
 ```bash
-# Create database schema
-mysql -u root -p < database/schema.sql
+# 创建数据库（示例库名）
+# mysql -u root -p -e "CREATE DATABASE seu_second_hand CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
-# Load test data (optional)
-mysql -u root -p < database/seed_data.sql
+# 推荐导入：v2.0 完整结构（含 favorites、order_number、seller_id、unit_price 等字段）
+mysql -u root -p seu_second_hand < database/schema_optimized.sql
+
+# 如果是旧版 6 表库，先备份再执行迁移
+# mysqldump -u root -p seu_second_hand > backup.sql
+# mysql -u root -p seu_second_hand < database/migration_v1_to_v2_fixed.sql
+
+# 加载测试数据（可选）
+mysql -u root -p seu_second_hand < database/seed_data.sql
 ```
 
 ### Environment Setup
@@ -60,13 +67,14 @@ Mock API file: `app/static/js/mock-api.js` (alternates with `app/static/js/api.j
 app/
 ├── __init__.py           # Flask app factory (create_app) - ✅ 完整实现
 ├── routes.py             # Main route registration - ✅ 完整实现页面路由
-├── models.py             # Database models (6 tables + relationships) - ✅ 完整实现
+├── models.py             # Database models (7 tables + relationships, v2.0) - ✅ 完整实现
 │                         #   • User (用户表)
-│                         #   • Item (商品表) 
-│                         #   • Order (订单表)
-│                         #   • OrderItem (订单明细表)
+│                         #   • Item (商品表)
+│                         #   • Favorite (收藏表, v2.0)
+│                         #   • Order (订单表: order_number, seller_id, remarks)
+│                         #   • OrderItem (订单明细表: unit_price 快照)
 │                         #   • Address (配送地址表)
-│                         #   • Review (评价表)
+│                         #   • Review (评价表: 订单唯一评价)
 ├── templates/            # Jinja2 templates (14 pages) - ✅ 完整
 ├── static/
 │   ├── css/style.css    # Modern CSS with variables, responsive design
@@ -126,8 +134,8 @@ This project strictly follows the three-tier architecture:
    - All database operations and business rules here
 
 3. **Model Layer** (`app/models.py`): Data models and ORM relationships
-   - 6 tables: User, Item, Order, OrderItem, Address, Review
-   - Uses SQLAlchemy 2.0+ with modern declarative syntax
+  - 7 tables: User, Item, Favorite, Order, OrderItem, Address, Review
+  - Uses SQLAlchemy 2.0+ with modern declarative syntax
 
 **Critical Transaction Handling Pattern (order_service.py:30-231)**
 The order creation is the most complex operation:

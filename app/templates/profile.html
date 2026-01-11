@@ -32,7 +32,7 @@
                     <a href="#profile" class="tab-link is-active" style="display: block; padding: var(--spacing-md) var(--spacing-lg); border-bottom: 1px solid var(--color-border); cursor: pointer;">👤 基本信息</a>
                     <a href="#orders" class="tab-link" style="display: block; padding: var(--spacing-md) var(--spacing-lg); border-bottom: 1px solid var(--color-border); cursor: pointer;">📦 我的订单</a>
                     <a href="#published" class="tab-link" style="display: block; padding: var(--spacing-md) var(--spacing-lg); border-bottom: 1px solid var(--color-border); cursor: pointer;">📄 我的发布</a>
-                    <a href="#favorites" class="tab-link" style="display: block; padding: var(--spacing-md) var(--spacing-lg); border-bottom: 1px solid var(--color-border); cursor: pointer;">❤️ 我的收藏</a>
+                    <a href="#addresses" class="tab-link" style="display: block; padding: var(--spacing-md) var(--spacing-lg); border-bottom: 1px solid var(--color-border); cursor: pointer;">📮 收货地址</a>
                     <a href="#settings" class="tab-link" style="display: block; padding: var(--spacing-md) var(--spacing-lg); cursor: pointer;">⚙️ 账户设置</a>
                 </div>
             </div>
@@ -50,10 +50,11 @@
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-2xl); margin-bottom: var(--spacing-2xl);">
                             <!-- 头像 -->
                             <div style="text-align: center;">
-                                <div style="width: 120px; height: 120px; border-radius: 50%; background: var(--color-bg-tertiary); display: flex; align-items: center; justify-content: center; font-size: 48px; margin: 0 auto var(--spacing-md);">
-                                    👤
+                                <div style="width: 120px; height: 120px; border-radius: 50%; background: var(--color-bg-tertiary); display: flex; align-items: center; justify-content: center; overflow: hidden; margin: 0 auto var(--spacing-md);">
+                                    <img id="profile-avatar" src="/static/images/placeholder.png" alt="头像" style="width:100%; height:100%; object-fit: cover;">
                                 </div>
-                                <button class="btn btn--secondary btn--sm">更换头像</button>
+                                <input type="file" id="avatar-file-input" accept="image/*" style="display:none;">
+                                <button id="change-avatar-btn" class="btn btn--secondary btn--sm">更换头像</button>
                             </div>
 
                             <!-- 信息 -->
@@ -65,6 +66,10 @@
                                 <div style="margin-bottom: var(--spacing-lg);">
                                     <div class="text-muted" style="font-size: var(--font-size-sm); margin-bottom: var(--spacing-sm);">邮箱</div>
                                     <div class="font-semibold" id="profile-email"></div>
+                                </div>
+                                <div style="margin-bottom: var(--spacing-lg);">
+                                    <div class="text-muted" style="font-size: var(--font-size-sm); margin-bottom: var(--spacing-sm);">手机号</div>
+                                    <div class="font-semibold" id="profile-phone">未填写</div>
                                 </div>
                                 <div style="margin-bottom: var(--spacing-lg);">
                                     <div class="text-muted" style="font-size: var(--font-size-sm); margin-bottom: var(--spacing-sm);">注册时间</div>
@@ -162,23 +167,61 @@
                 </div>
             </div>
 
-            <!-- 我的收藏标签 -->
-            <div id="favorites-tab" class="tab-content" style="display: none;">
+            <!-- 收货地址标签 -->
+            <div id="addresses-tab" class="tab-content" style="display: none;">
                 <div class="card">
-                    <div class="card__header">
-                        <h2 style="margin: 0;">我的收藏</h2>
+                    <div class="card__header" style="display:flex; justify-content: space-between; align-items: center;">
+                        <h2 style="margin: 0;">收货地址</h2>
+                        <button id="add-address-btn" class="btn btn--primary btn--sm">+ 添加地址</button>
                     </div>
                     <div class="card__body">
-                        <div id="favorites-list" style="display: none;">
-                            <div class="grid grid--cols-4" id="favorites-items">
-                                <!-- 动态填充 -->
-                            </div>
+                        <div id="addresses-list" class="grid grid--cols-2" style="gap: var(--spacing-md); margin-bottom: var(--spacing-lg);">
+                            <div class="skeleton" style="height: 120px;"></div>
+                            <div class="skeleton" style="height: 120px;"></div>
                         </div>
-                        <div id="favorites-empty" class="empty-state">
-                            <div class="empty-state__icon">❤️</div>
-                            <div class="empty-state__title">暂无收藏</div>
-                            <p class="empty-state__description">您还没有收藏过任何商品</p>
-                            <a href="/" class="btn btn--primary">浏览商品</a>
+                        <div id="addresses-empty" class="empty-state" style="display:none;">
+                            <div class="empty-state__icon">📮</div>
+                            <div class="empty-state__title">暂无收货地址</div>
+                            <p class="empty-state__description">添加一个收货地址以便快速下单</p>
+                        </div>
+
+                        <div id="address-form" class="card" style="display:none; margin-top: var(--spacing-lg);">
+                            <div class="card__header">
+                                <h3 style="margin:0;">新增地址</h3>
+                            </div>
+                            <div class="card__body">
+                                <div class="grid grid--cols-2">
+                                    <div class="form-group">
+                                        <label class="form-label">收货人</label>
+                                        <input type="text" class="form-input" name="recipient_name" placeholder="请填写收货人">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">手机号</label>
+                                        <input type="text" class="form-input" name="phone" placeholder="请填写手机号">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">城市</label>
+                                        <input type="text" class="form-input" name="city" placeholder="如：南京">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">区/宿舍楼</label>
+                                        <input type="text" class="form-input" name="district" placeholder="如：九龙湖宿舍 A 栋">
+                                    </div>
+                                    <div class="form-group" style="grid-column:1 / -1;">
+                                        <label class="form-label">详细地址</label>
+                                        <input type="text" class="form-input" name="detail" placeholder="楼层、房间号等">
+                                    </div>
+                                    <div class="form-group" style="grid-column:1 / -1;">
+                                        <label class="form-checkbox" style="display: inline-flex; align-items: center; gap: 8px;">
+                                            <input type="checkbox" name="is_default"> 设为默认地址
+                                        </label>
+                                    </div>
+                                </div>
+                                <div style="display:flex; gap: var(--spacing-sm); margin-top: var(--spacing-md);">
+                                    <button type="button" id="save-address-btn" class="btn btn--primary">保存地址</button>
+                                    <button type="button" id="cancel-address-btn" class="btn btn--secondary">取消</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -225,6 +268,30 @@
     </div>
 </div>
 
+<!-- 编辑资料弹窗 -->
+<div id="edit-profile-modal" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); z-index: 2000; align-items: center; justify-content: center;">
+    <div style="background: var(--color-bg-primary); padding: var(--spacing-xl); border-radius: var(--radius-lg); width: 520px; max-width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.25);">
+        <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom: var(--spacing-md);">
+            <h3 style="margin:0;">编辑基本信息</h3>
+            <button id="close-edit-modal" class="btn btn--text">✕</button>
+        </div>
+        <div class="grid grid--cols-2" style="gap: var(--spacing-md);">
+            <div class="form-group" style="grid-column:1 / -1;">
+                <label class="form-label">用户名</label>
+                <input type="text" id="edit-username" class="form-input" placeholder="请输入用户名">
+            </div>
+            <div class="form-group" style="grid-column:1 / -1;">
+                <label class="form-label">手机号</label>
+                <input type="text" id="edit-phone" class="form-input" placeholder="请输入手机号">
+            </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap: var(--spacing-sm); margin-top: var(--spacing-md);">
+            <button id="cancel-edit-btn" class="btn btn--secondary">取消</button>
+            <button id="save-edit-btn" class="btn btn--primary">保存</button>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -235,6 +302,7 @@
 class ProfilePage {
     constructor() {
         this.user = AuthManager.getUser();
+        this.addresses = [];
         this.init();
     }
 
@@ -262,14 +330,58 @@ class ProfilePage {
     renderProfile() {
         document.getElementById('profile-username').textContent = this.user.username;
         document.getElementById('profile-email').textContent = this.user.email;
-        document.getElementById('profile-created-at').textContent =
-            new Date(this.user.created_at).toLocaleDateString('zh-CN');
+        document.getElementById('profile-phone').textContent = this.user.phone || '未填写';
+        const created = this.user.created_at ? new Date(this.user.created_at) : null;
+        document.getElementById('profile-created-at').textContent = created ? created.toLocaleString('zh-CN') : '暂无';
+        const avatar = this.user.avatar || this.user.avatar_url;
+        const avatarEl = document.getElementById('profile-avatar');
+        if (avatarEl) {
+            avatarEl.src = avatar || '/static/images/placeholder.png';
+        }
+    }
+
+    showEditModal() {
+        const modal = document.getElementById('edit-profile-modal');
+        modal.style.display = 'flex';
+        const user = this.user || {};
+        document.getElementById('edit-username').value = user.username || '';
+        document.getElementById('edit-phone').value = user.phone || '';
+    }
+
+    hideEditModal() {
+        document.getElementById('edit-profile-modal').style.display = 'none';
+    }
+
+    async saveProfileFromModal() {
+        const payload = {
+            nickname: document.getElementById('edit-username').value.trim(),
+            phone: document.getElementById('edit-phone').value.trim(),
+        };
+
+        LoadingManager.show('正在保存资料...');
+        try {
+            const resp = await API.user.updateProfile(payload);
+            if (resp.data) {
+                this.user = resp.data;
+                AuthManager.setUser(resp.data);
+                this.renderProfile();
+                await this.loadUserData();
+                NotificationManager.success('资料已更新');
+                this.hideEditModal();
+            }
+        } catch (error) {
+            NotificationManager.error(error?.data?.message || '保存失败');
+        } finally {
+            LoadingManager.hide();
+        }
     }
 
     async loadUserData() {
         try {
             const response = await API.user.getCurrentUser();
             const user = response.data;
+            this.user = user;
+            AuthManager.setUser(user);
 
             // 更新统计信息
             document.getElementById('stats-published').textContent = user.stats?.published || 0;
@@ -277,14 +389,23 @@ class ProfilePage {
             document.getElementById('stats-favorites').textContent = user.stats?.favorites || 0;
             document.getElementById('profile-rating').textContent = (user.rating || 5.0).toFixed(1);
 
+            this.renderProfile();
             // 加载订单
             this.loadOrders();
             // 加载发布
             this.loadPublished();
-            // 加载收藏
-            this.loadFavorites();
+            // 加载地址
+            this.loadAddresses();
         } catch (error) {
             console.error('加载用户数据失败:', error);
+            // 未登录或Token无效：显示登录提示，隐藏内容
+            if (error.statusCode === 401 || error.type === 'AUTH_ERROR' || error.message?.includes('登录')) {
+                const loginRequired = document.getElementById('login-required');
+                const profileContent = document.getElementById('profile-content');
+                loginRequired.style.display = 'block';
+                profileContent.style.display = 'none';
+                return;
+            }
         }
     }
 
@@ -319,7 +440,7 @@ class ProfilePage {
     async loadPublished() {
         try {
             const response = await API.item.getUserItems(this.user.id, { page: 1, limit: 6 });
-            const items = response.data || [];
+            const items = (response.data && response.data.items) || response.data || [];
 
             if (items.length === 0) {
                 document.getElementById('published-empty').style.display = 'block';
@@ -334,7 +455,7 @@ class ProfilePage {
                         <img src="${item.image || '/static/images/placeholder.png'}" alt="${item.title}" class="product-card__image">
                         <div class="product-card__content">
                             <h3 class="product-card__title">${item.title}</h3>
-                            <div class="product-card__price">¥${item.price.toFixed(2)}</div>
+                               <div class="product-card__price">¥${item.price?.toFixed ? item.price.toFixed(2) : item.price}</div>
                             <div class="text-sm text-muted">库存: ${item.stock}</div>
                         </div>
                     </a>
@@ -345,31 +466,135 @@ class ProfilePage {
         }
     }
 
-    async loadFavorites() {
+    async loadAddresses() {
         try {
-            const response = await API.recommend.getPersonalized({ limit: 8 });
-            const items = response.data || [];
+            const resp = await API.address.getList();
+            this.addresses = Array.isArray(resp.data) ? resp.data : (resp.data?.items || []);
+            this.renderAddresses();
+        } catch (error) {
+            console.error('加载地址失败:', error);
+        }
+    }
 
-            if (items.length === 0) {
-                document.getElementById('favorites-empty').style.display = 'block';
-                document.getElementById('favorites-list').style.display = 'none';
-            } else {
-                document.getElementById('favorites-list').style.display = 'block';
-                document.getElementById('favorites-empty').style.display = 'none';
+    renderAddresses() {
+        const listEl = document.getElementById('addresses-list');
+        const emptyEl = document.getElementById('addresses-empty');
 
-                const container = document.getElementById('favorites-items');
-                container.innerHTML = items.map(item => `
-                    <a href="/items/${item.id}" class="product-card" style="text-decoration: none; color: inherit;">
-                        <img src="${item.image || '/static/images/placeholder.png'}" alt="${item.title}" class="product-card__image">
-                        <div class="product-card__content">
-                            <h3 class="product-card__title">${item.title}</h3>
-                            <div class="product-card__price">¥${item.price.toFixed(2)}</div>
-                        </div>
-                    </a>
-                `).join('');
+        if (!this.addresses.length) {
+            listEl.innerHTML = '';
+            emptyEl.style.display = 'block';
+            listEl.style.display = 'none';
+            return;
+        }
+
+        emptyEl.style.display = 'none';
+        listEl.style.display = 'grid';
+        listEl.innerHTML = this.addresses.map(addr => `
+            <div class="card" style="padding: var(--spacing-md); position: relative;">
+                ${addr.is_default ? '<span class="badge badge--primary" style="position:absolute; top:12px; right:12px;">默认</span>' : ''}
+                <div class="font-semibold" style="margin-bottom: var(--spacing-xs);">${addr.recipient_name} ${addr.phone}</div>
+                <div class="text-muted" style="font-size: var(--font-size-sm);">${addr.full_address || addr.detail}</div>
+                <div style="display:flex; gap: var(--spacing-sm); margin-top: var(--spacing-sm);">
+                    <button class="btn btn--secondary btn--sm" data-action="default" data-id="${addr.id}">设为默认</button>
+                    <button class="btn btn--danger btn--sm" data-action="delete" data-id="${addr.id}">删除</button>
+                </div>
+            </div>
+        `).join('');
+
+        listEl.querySelectorAll('[data-action="default"]').forEach(btn => {
+            btn.addEventListener('click', (e) => this.setDefaultAddress(e.target.dataset.id));
+        });
+        listEl.querySelectorAll('[data-action="delete"]').forEach(btn => {
+            btn.addEventListener('click', (e) => this.deleteAddress(e.target.dataset.id));
+        });
+    }
+
+    async setDefaultAddress(addressId) {
+        LoadingManager.show('正在设置默认地址...');
+        try {
+            const resp = await API.address.setDefault(addressId);
+            if (resp.data) {
+                this.addresses = this.addresses.map(addr => ({
+                    ...addr,
+                    is_default: addr.id === resp.data.id
+                }));
+                this.renderAddresses();
+                NotificationManager.success('已设为默认地址');
             }
         } catch (error) {
-            console.error('加载收藏失败:', error);
+            NotificationManager.error(error?.data?.message || '操作失败');
+        } finally {
+            LoadingManager.hide();
+        }
+    }
+
+    async deleteAddress(addressId) {
+        if (!confirm('确定要删除该地址吗？')) return;
+        LoadingManager.show('正在删除地址...');
+        try {
+            await API.address.delete(addressId);
+            this.addresses = this.addresses.filter(addr => String(addr.id) !== String(addressId));
+            this.renderAddresses();
+            NotificationManager.success('地址已删除');
+        } catch (error) {
+            NotificationManager.error(error?.data?.message || '删除失败');
+        } finally {
+            LoadingManager.hide();
+        }
+    }
+
+    async saveAddressFromForm() {
+        const form = document.getElementById('address-form');
+        const getVal = (name) => form.querySelector(`[name="${name}"]`).value.trim();
+        const payload = {
+            recipient_name: getVal('recipient_name'),
+            phone: getVal('phone'),
+            city: getVal('city'),
+            district: getVal('district'),
+            detail: getVal('detail'),
+            is_default: form.querySelector('[name="is_default"]').checked,
+        };
+
+        if (!payload.recipient_name || !payload.phone || !payload.city || !payload.district || !payload.detail) {
+            NotificationManager.error('请完整填写地址信息');
+            return;
+        }
+
+        LoadingManager.show('正在保存地址...');
+        try {
+            const resp = await API.address.add(payload);
+            if (resp.data) {
+                const saved = {
+                    ...resp.data,
+                    full_address: `${resp.data.city || ''}${resp.data.district || ''}${resp.data.detail || ''}`
+                };
+                let next = [saved, ...this.addresses];
+                if (saved.is_default) {
+                    next = next.map(addr => ({ ...addr, is_default: addr.id === saved.id }));
+                }
+                this.addresses = next;
+                this.renderAddresses();
+                this.toggleAddressForm(false);
+                NotificationManager.success('地址已添加');
+            }
+        } catch (error) {
+            NotificationManager.error(error?.data?.message || '保存失败');
+        } finally {
+            LoadingManager.hide();
+        }
+    }
+
+    toggleAddressForm(show) {
+        const form = document.getElementById('address-form');
+        form.style.display = show ? 'block' : 'none';
+        if (!show) {
+            form.querySelectorAll('input').forEach(input => {
+                if (input.type === 'checkbox') {
+                    input.checked = false;
+                } else {
+                    input.value = '';
+                }
+            });
         }
     }
 
@@ -388,9 +613,28 @@ class ProfilePage {
             });
         });
 
-        // 编辑资料
-        document.getElementById('edit-profile-btn').addEventListener('click', () => {
-            NotificationManager.info('编辑功能开发中');
+        // 编辑资料弹窗
+        document.getElementById('edit-profile-btn').addEventListener('click', () => this.showEditModal());
+        document.getElementById('cancel-edit-btn').addEventListener('click', () => this.hideEditModal());
+        document.getElementById('close-edit-modal').addEventListener('click', () => this.hideEditModal());
+        document.getElementById('save-edit-btn').addEventListener('click', () => this.saveProfileFromModal());
+
+        // 地址表单
+        document.getElementById('add-address-btn').addEventListener('click', () => this.toggleAddressForm(true));
+        document.getElementById('cancel-address-btn').addEventListener('click', () => this.toggleAddressForm(false));
+        document.getElementById('save-address-btn').addEventListener('click', () => this.saveAddressFromForm());
+
+        // 更换头像
+        document.getElementById('change-avatar-btn').addEventListener('click', () => {
+            document.getElementById('avatar-file-input').click();
+        });
+
+        document.getElementById('avatar-file-input').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                await this.uploadAvatar(file);
+                e.target.value = '';
+            }
         });
 
         // 修改密码
@@ -405,6 +649,22 @@ class ProfilePage {
                 NotificationManager.info('删除账户功能开发中');
             }
         });
+    }
+
+    async uploadAvatar(file) {
+        LoadingManager.show('正在上传头像...');
+        try {
+            const uploadResp = await API.upload.uploadImage(file, 'avatar');
+            const url = uploadResp.data?.url;
+            if (!url) throw new Error('上传失败');
+            await API.user.updateProfile({ avatar: url });
+            await this.loadUserData();
+            NotificationManager.success('头像已更新');
+        } catch (error) {
+            NotificationManager.error(error?.data?.message || '上传失败');
+        } finally {
+            LoadingManager.hide();
+        }
     }
 }
 

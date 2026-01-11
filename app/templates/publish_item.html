@@ -250,16 +250,27 @@ class PublishItemPage {
     uploadImage(file) {
         LoadingManager.show('正在上传图片...');
 
-        // 模拟图片上传（实际项目中应该上传到服务器或云存储）
-        setTimeout(() => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                this.images.push(e.target.result);
-                this.renderImages();
+        API.upload.uploadImage(file)
+            .then(resp => {
+                const url = resp.data?.url;
+                if (url) {
+                    this.images.push(url);
+                    this.renderImages();
+                } else {
+                    NotificationManager.error('上传失败，请稍后重试');
+                }
                 LoadingManager.hide();
-            };
-            reader.readAsDataURL(file);
-        }, 500);
+            })
+            .catch(err => {
+                LoadingManager.hide();
+                if (err?.data?.message) {
+                    NotificationManager.error(err.data.message);
+                } else if (err?.message) {
+                    NotificationManager.error(err.message);
+                } else {
+                    NotificationManager.error('上传失败，请检查网络');
+                }
+            });
     }
 
     renderImages() {

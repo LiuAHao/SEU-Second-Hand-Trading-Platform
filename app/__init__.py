@@ -43,6 +43,8 @@ def create_app():
         'mysql+pymysql://root:123456@localhost:3306/SEU_Second_Hand?charset=utf8mb4'  
     )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # 关闭对象修改跟踪，消除警告、提升性能
+    # 文件上传大小限制：5MB
+    app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024
     # 可选：开启数据库查询日志（开发环境调试用）
     # app.config['SQLALCHEMY_ECHO'] = True
 
@@ -56,14 +58,20 @@ def create_app():
     from app.api.items import items_bp
     from app.api.orders import orders_bp  # 添加订单蓝图导入
     from app.api.cart import cart_bp      # 添加购物车蓝图导入
-    
+    from app.api.favorites import favorites_bp  # 添加收藏蓝图导入
+    from app.api.upload import upload_bp        # 文件上传蓝图
+    from app.api.addresses import addresses_bp  # 地址蓝图
+
     app.register_blueprint(items_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(users_bp)
     app.register_blueprint(orders_bp)      # 注册订单蓝图
     app.register_blueprint(cart_bp)        # 注册购物车蓝图
-    
-    print("API蓝图注册完成: auth, users, items, orders, cart")  # 添加日志
+    app.register_blueprint(favorites_bp)  # 注册收藏蓝图
+    app.register_blueprint(upload_bp)      # 注册上传蓝图
+    app.register_blueprint(addresses_bp)   # 注册地址蓝图
+
+    print("API蓝图注册完成: auth, users, items, orders, cart, favorites, upload, addresses")  # 添加日志
 
     # 5. 注册路由（若存在路由注册函数）
     if register_routes is not None:

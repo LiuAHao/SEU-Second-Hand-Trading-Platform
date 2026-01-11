@@ -65,7 +65,7 @@ class Item(db.Model):
         ('clothes', '服饰鞋帽'),
         ('other', '其他商品')
     ]
-    # 核心字段（匹配schema.sql，含完整约束）
+    # 核心字段（匹配schema_optimized.sql，含完整约束）
     id = db.Column(db.Integer, primary_key=True, autoincrement=True, comment='商品ID')
     seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, comment='卖家ID')
     title = db.Column(db.String(100), nullable=False, comment='商品标题')
@@ -74,18 +74,20 @@ class Item(db.Model):
     price = db.Column(db.Numeric(10, 2), nullable=False, comment='价格')
     stock = db.Column(db.Integer, nullable=False, default=0, comment='库存数量（关键字段）')
     views = db.Column(db.Integer, nullable=False, default=0, comment='浏览次数')
-    favorites = db.Column(db.Integer, nullable=False, default=0, comment='收藏次数')
+    favorites = db.Column(db.Integer, nullable=False, default=0, comment='收藏次数（统计用，由favorites表触发器更新）')
     image_url = db.Column(db.String(255), nullable=True, default=None, comment='商品图片URL')
     created_at = db.Column(db.DateTime, default=datetime.now, nullable=False, comment='创建时间')
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, nullable=False, comment='更新时间')
     is_active = db.Column(db.Boolean, nullable=False, default=True, comment='是否在售')
 
-    # 索引定义（匹配schema.sql）
+    # 索引定义（匹配schema_optimized.sql）
     __table_args__ = (
-        db.Index('idx_items_seller_id', 'seller_id'),
-        db.Index('idx_items_category', 'category'),
-        db.Index('idx_items_price', 'price'),
-        db.Index('idx_items_created_at', 'created_at'),
+        db.Index('idx_seller_id', 'seller_id'),
+        db.Index('idx_category', 'category'),
+        db.Index('idx_price', 'price'),
+        db.Index('idx_stock', 'stock'),
+        db.Index('idx_created_at', 'created_at'),
+        db.Index('idx_is_active', 'is_active'),
         # 全文索引在SQLAlchemy中通常通过数据库直接创建，此处仅做标记
         # db.Index('idx_title_description', 'title', 'description', postgresql_using='gin')
     )
@@ -95,6 +97,8 @@ class Item(db.Model):
     order_items = db.relationship('OrderItem', backref='item', lazy=True, cascade='all, delete-orphan')
     # 2. 商品对应的评价：item.reviews → 该商品的所有评价
     reviews = db.relationship('Review', backref='item', lazy=True, cascade='all, delete-orphan')
+    # 3. 商品对应的收藏记录：item.favorites_list → 收藏该商品的所有用户
+    favorites_list = db.relationship('Favorite', backref='item', lazy=True, cascade='all, delete-orphan')
     
     # 分类验证器
     @validates('category')
@@ -126,10 +130,35 @@ class Item(db.Model):
     def __repr__(self):
         return f"<Item(id={self.id}, title='{self.title}', price={self.price}, stock={self.stock}, seller_id={self.seller_id})>"
 
-# -------------------------- 3. 订单表（Orders）- 核心业务表 --------------------------
+# -------------------------- 3. 收藏表（Favorites）- 用户收藏关联表 --------------------------
+class Favorite(db.Model):
+    __tablename__ = 'favorites'
+
+    # 核心字段（匹配schema_optimized.sql）
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True, comment='收藏ID')
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, comment='用户ID')
+    item_id = db.Column(db.Integer, db.ForeignKey('items.id'), nullable=False, comment='商品ID')
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False, comment='收藏时间')
+
+    # 索引定义（匹配schema_optimized.sql）
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'item_id', name='uk_user_item'),
+        db.Index('idx_user_id', 'user_id'),
+        db.Index('idx_item_id', 'item_id'),
+        db.Index('idx_created_at', 'created_at'),
+    )
+
+    # 模型关联关系
+    # 用户：favorite.user → 收藏记录所属用户（多对一，禁用 delete-orphan）
+    user = db.relationship('User', backref=db.backref('favorites', lazy=True, cascade='all'))
+
+    def __repr__(self):
+        return f"<Favorite(id={self.id}, user_id={self.user_id}, item_id={self.item_id})>"
+
+# -------------------------- 4. 订单表（Orders）- 核心业务表（优化版） --------------------------
 class Order(db.Model):
     __tablename__ = 'orders'
-    
+
     # 订单状态枚举
     STATUS_CHOICES = [
         ('pending', '待支付'),
@@ -138,40 +167,39 @@ class Order(db.Model):
         ('completed', '已完成'),
         ('cancelled', '已取消')
     ]
-    
-    # 核心字段 - 匹配数据库现有结构
+
+    # 核心字段 - 匹配schema_optimized.sql（优化版）
     id = db.Column(db.Integer, primary_key=True, autoincrement=True, comment='订单ID')
-    order_number = db.Column(db.String(50), unique=True, nullable=False, comment='订单号')  # 数据库已有
+    order_number = db.Column(db.String(50), unique=True, nullable=False, comment='订单号（唯一）')
     buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, comment='买家ID')
+    seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, comment='卖家ID')
+    address_id = db.Column(db.Integer, db.ForeignKey('addresses.id'), nullable=False, comment='收货地址ID')
     total_amount = db.Column(db.Numeric(10, 2), nullable=False, comment='订单总金额')
-    seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, comment='卖家ID')  # 数据库已有
-    address_id = db.Column(db.Integer, db.ForeignKey('addresses.id'), nullable=False, comment='地址ID')  # 数据库已有
     status = db.Column(db.String(50), nullable=False, default='pending', comment='订单状态')
-    shipping_address = db.Column(db.String(255), nullable=False, comment='配送地址')
-    total_price = db.Column(db.Numeric(10, 2), nullable=False, comment='订单总价')  # 数据库已有，与total_amount可能重复
-    remarks = db.Column(db.Text, nullable=True, default=None, comment='备注')  # 数据库已有
+    remarks = db.Column(db.Text, nullable=True, default=None, comment='订单备注')
+    shipping_address = db.Column(db.String(255), nullable=True, default=None, comment='配送地址快照（冗余字段，用于保留下单时地址）')
     created_at = db.Column(db.DateTime, default=datetime.now, nullable=False, comment='创建时间')
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, nullable=False, comment='更新时间')
-    
-    # 索引定义
+
+    # 索引定义（匹配schema_optimized.sql）
     __table_args__ = (
-        db.Index('idx_orders_buyer_id', 'buyer_id'),
-        db.Index('idx_orders_seller_id', 'seller_id'),
-        db.Index('idx_orders_status', 'status'),
-        db.Index('idx_orders_created_at', 'created_at'),
-        db.UniqueConstraint('order_number', name='uq_order_number'),
+        db.Index('idx_order_number', 'order_number'),
+        db.Index('idx_buyer_id', 'buyer_id'),
+        db.Index('idx_seller_id', 'seller_id'),
+        db.Index('idx_status', 'status'),
+        db.Index('idx_created_at', 'created_at'),
     )
     
     # 模型关联关系
     order_items = db.relationship('OrderItem', backref='order', lazy=True, cascade='all, delete-orphan')
     reviews = db.relationship('Review', backref='order', lazy=True, cascade='all, delete-orphan')
-    
-    # 卖家关系（新增）
+
+    # 卖家关系
     seller = db.relationship('User', foreign_keys=[seller_id], backref='orders_as_seller')
-    
-    # 地址关系（新增）
+
+    # 地址关系
     address = db.relationship('Address', foreign_keys=[address_id], backref='orders')
-    
+
     # 状态验证器
     @validates('status')
     def validate_status(self, key, status):
@@ -182,7 +210,7 @@ class Order(db.Model):
     
     def __repr__(self):
         return f"<Order(id={self.id}, order_number='{self.order_number}', buyer_id={self.buyer_id}, total_amount={self.total_amount})>"
-    
+
     def generate_order_number(self):
         """生成订单号（如果需要）"""
         if not self.order_number:
@@ -192,57 +220,57 @@ class Order(db.Model):
             random_num = random.randint(1000, 9999)
             self.order_number = f'ORD{timestamp}{random_num}'
 
-# -------------------------- 4. 订单明细表（Order_Items）- 关联表 --------------------------
+# -------------------------- 5. 订单明细表（Order_Items）- 关联表 --------------------------
 class OrderItem(db.Model):
     __tablename__ = 'order_items'
 
-    # 核心字段（匹配数据库实际结构）
+    # 核心字段（匹配schema_optimized.sql）
     id = db.Column(db.Integer, primary_key=True, autoincrement=True, comment='订单明细ID')
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False, comment='订单ID')
     item_id = db.Column(db.Integer, db.ForeignKey('items.id'), nullable=False, comment='商品ID')
     quantity = db.Column(db.Integer, nullable=False, default=1, comment='购买数量')
-    unit_price = db.Column(db.Numeric(10, 2), nullable=False, comment='购买时价格')  # 改为unit_price
+    unit_price = db.Column(db.Numeric(10, 2), nullable=False, comment='购买时单价（快照）')
     created_at = db.Column(db.DateTime, default=datetime.now, nullable=False, comment='创建时间')
 
-    # 索引定义（匹配数据库）
+    # 索引定义（匹配schema_optimized.sql）
     __table_args__ = (
-        db.Index('idx_order_items_order_id', 'order_id'),
-        db.Index('idx_order_items_item_id', 'item_id'),
+        db.Index('idx_order_id', 'order_id'),
+        db.Index('idx_item_id', 'item_id'),
     )
 
     def __repr__(self):
         return f"<OrderItem(id={self.id}, order_id={self.order_id}, item_id={self.item_id}, quantity={self.quantity}, unit_price={self.unit_price})>"
 
-# -------------------------- 5. 地址表（Addresses）- 辅助业务表 --------------------------
+# -------------------------- 6. 地址表（Addresses）- 辅助业务表 --------------------------
 class Address(db.Model):
     __tablename__ = 'addresses'  # 与数据库表名严格一致
 
-    # 核心字段（适配收货地址业务需求）
+    # 核心字段（匹配schema_optimized.sql）
     id = db.Column(db.Integer, primary_key=True, autoincrement=True, comment='地址ID')
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, comment='用户ID')
     recipient_name = db.Column(db.String(50), nullable=False, comment='收货人姓名')
-    phone = db.Column(db.String(20), nullable=False, comment='收货人电话')  # 字段名从recipient_phone改为phone（匹配schema）
-    province = db.Column(db.String(50), nullable=True, comment='省份')  # 允许为NULL（匹配schema）
-    city = db.Column(db.String(50), nullable=True, comment='城市')  # 允许为NULL（匹配schema）
-    district = db.Column(db.String(50), nullable=True, comment='区县')  # 允许为NULL（匹配schema）
-    detail = db.Column(db.String(255), nullable=False, comment='详细地址')  # 字段名从detail_address改为detail（匹配schema）
+    phone = db.Column(db.String(20), nullable=False, comment='收货人电话')
+    province = db.Column(db.String(50), nullable=True, comment='省份')
+    city = db.Column(db.String(50), nullable=True, comment='城市')
+    district = db.Column(db.String(50), nullable=True, comment='区县')
+    detail = db.Column(db.String(255), nullable=False, comment='详细地址')
     is_default = db.Column(db.Boolean, nullable=False, default=False, comment='是否为默认地址')
     created_at = db.Column(db.DateTime, default=datetime.now, nullable=False, comment='创建时间')
-    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, nullable=False, comment='更新时间')  # 补充更新时间字段
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, nullable=False, comment='更新时间')
 
-    # 索引定义（匹配schema.sql）
+    # 索引定义（匹配schema_optimized.sql）
     __table_args__ = (
-        db.Index('idx_addresses_user_id', 'user_id'),
+        db.Index('idx_user_id', 'user_id'),
     )
 
     def __repr__(self):
         return f"<Address(id={self.id}, user_id={self.user_id}, recipient_name='{self.recipient_name}', is_default={self.is_default})>"
 
-# -------------------------- 6. 评价表（Reviews）- 辅助业务表 --------------------------
+# -------------------------- 7. 评价表（Reviews）- 辅助业务表 --------------------------
 class Review(db.Model):
     __tablename__ = 'reviews'  # 与数据库表名严格一致
 
-    # 核心字段（适配商品评价业务需求）
+    # 核心字段（匹配schema_optimized.sql）
     id = db.Column(db.Integer, primary_key=True, autoincrement=True, comment='评价ID')
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False, comment='订单ID')
     item_id = db.Column(db.Integer, db.ForeignKey('items.id'), nullable=False, comment='商品ID')
@@ -252,11 +280,14 @@ class Review(db.Model):
     content = db.Column(db.Text, nullable=True, default=None, comment='评价内容')
     created_at = db.Column(db.DateTime, default=datetime.now, nullable=False, comment='评价创建时间')
 
-    # 约束与索引（匹配schema.sql）
+    # 约束与索引（匹配schema_optimized.sql）
     __table_args__ = (
-        db.CheckConstraint('rating BETWEEN 1 AND 5', name='check_rating_range'),
-        db.Index('idx_reviews_item_id', 'item_id'),
-        db.Index('idx_reviews_reviewer_id', 'reviewer_id'),
+        db.UniqueConstraint('order_id', name='uk_order_id'),  # 一个订单只能评价一次
+        db.Index('idx_item_id', 'item_id'),
+        db.Index('idx_reviewer_id', 'reviewer_id'),
+        db.Index('idx_reviewee_id', 'reviewee_id'),
+        db.Index('idx_created_at', 'created_at'),
+        db.CheckConstraint('rating BETWEEN 1 AND 5', name='chk_rating_range'),
     )
 
     def __repr__(self):

@@ -123,6 +123,9 @@ class UserService:
             'id': user.id,
             'username': user.username,
             'email': user.email,
+            'phone': user.phone or '',
+            'avatar': user.avatar_url or '',
+            'bio': user.bio or '',
             'created_at': user.created_at.isoformat() if user.created_at else None,
             'stats': stats,
             'rating': UserService._get_user_rating(user_id)

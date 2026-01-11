@@ -5,7 +5,8 @@
       "Bash(netstat:*)",
       "Bash(findstr:*)",
       "Bash(find:*)",
-      "Bash(paste:*)"
+      "Bash(paste:*)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []
