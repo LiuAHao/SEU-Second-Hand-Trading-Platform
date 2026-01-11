@@ -211,3 +211,5 @@ __marimo__/
 
 # Flask 迁移文件夹（除了 migrations/ 文件夹本身，内容应该提交）
 migrations/versions/* 
+
+app\static\uploads\*
