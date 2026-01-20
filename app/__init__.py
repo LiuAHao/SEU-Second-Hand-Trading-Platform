@@ -36,12 +36,13 @@ def create_app():
     # 2.2 数据库配置（从 .env 文件读取，避免硬编码）
     # 数据库连接字符串格式：mysql+pymysql://用户名:密码@主机:端口/数据库名?charset=utf8mb4
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
-        'DATABASE_URI',  # 从 .env 文件读取的配置键
-        # 默认值（备用，若 .env 未配置，可临时使用，生产环境需删除）
-
-        #此处默认密码更改为 123456，请根据实际情况修改
-        'mysql+pymysql://root:123456@localhost:3306/SEU_Second_Hand?charset=utf8mb4'  
+        'DATABASE_URI',
+        'mysql+pymysql://root:123456@localhost:3306/seu_second_hand?charset=utf8mb4'
     )
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,
+        'connect_args': {'charset': 'utf8mb4'}
+    }
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # 关闭对象修改跟踪，消除警告、提升性能
     # 文件上传大小限制：5MB
     app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024

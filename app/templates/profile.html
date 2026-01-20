@@ -51,7 +51,7 @@
                             <!-- 头像 -->
                             <div style="text-align: center;">
                                 <div style="width: 120px; height: 120px; border-radius: 50%; background: var(--color-bg-tertiary); display: flex; align-items: center; justify-content: center; overflow: hidden; margin: 0 auto var(--spacing-md);">
-                                    <img id="profile-avatar" src="/static/images/placeholder.png" alt="头像" style="width:100%; height:100%; object-fit: cover;">
+                                    <img id="profile-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'><rect width='120' height='120' rx='60' fill='%23e9edf3'/><circle cx='60' cy='48' r='22' fill='%23c9d2df'/><rect x='26' y='78' width='68' height='28' rx='14' fill='%23c9d2df'/></svg>" alt="头像" style="width:100%; height:100%; object-fit: cover;">
                                 </div>
                                 <input type="file" id="avatar-file-input" accept="image/*" style="display:none;">
                                 <button id="change-avatar-btn" class="btn btn--secondary btn--sm">更换头像</button>
@@ -90,7 +90,7 @@
                 </div>
 
                 <!-- 统计信息 -->
-                <div class="grid grid--cols-3">
+                <div class="grid grid--cols-2">
                     <div class="card" style="text-align: center; padding: var(--spacing-lg);">
                         <div style="font-size: 32px; margin-bottom: var(--spacing-md);">📦</div>
                         <div class="text-muted" style="font-size: var(--font-size-sm); margin-bottom: var(--spacing-sm);">已发布</div>
@@ -100,11 +100,6 @@
                         <div style="font-size: 32px; margin-bottom: var(--spacing-md);">✅</div>
                         <div class="text-muted" style="font-size: var(--font-size-sm); margin-bottom: var(--spacing-sm);">已售出</div>
                         <div class="font-bold" style="font-size: var(--font-size-2xl); color: var(--color-success);" id="stats-sold">0</div>
-                    </div>
-                    <div class="card" style="text-align: center; padding: var(--spacing-lg);">
-                        <div style="font-size: 32px; margin-bottom: var(--spacing-md);">❤️</div>
-                        <div class="text-muted" style="font-size: var(--font-size-sm); margin-bottom: var(--spacing-sm);">收藏数</div>
-                        <div class="font-bold" style="font-size: var(--font-size-2xl); color: var(--color-error);" id="stats-favorites">0</div>
                     </div>
                 </div>
             </div>
@@ -336,7 +331,7 @@ class ProfilePage {
         const avatar = this.user.avatar || this.user.avatar_url;
         const avatarEl = document.getElementById('profile-avatar');
         if (avatarEl) {
-            avatarEl.src = avatar || '/static/images/placeholder.png';
+            avatarEl.src = avatar || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'><rect width='120' height='120' rx='60' fill='%23e9edf3'/><circle cx='60' cy='48' r='22' fill='%23c9d2df'/><rect x='26' y='78' width='68' height='28' rx='14' fill='%23c9d2df'/></svg>";
         }
     }
 
@@ -422,18 +417,121 @@ class ProfilePage {
                 document.getElementById('orders-empty').style.display = 'none';
 
                 const tbody = document.getElementById('orders-tbody');
-                tbody.innerHTML = orders.map(order => `
+                tbody.innerHTML = orders.map(order => {
+                    const amount = Number(order.total_amount ?? order.total_price ?? 0);
+                    const safeAmount = Number.isFinite(amount) ? amount.toFixed(2) : '0.00';
+                    const statusText = order.status_text || order.status || '未知';
+                    const itemsCount = order.items?.length || 0;
+                    const canCancel = (order.status === 'pending');
+                    return `
                     <tr>
                         <td>#${order.id}</td>
-                        <td>${order.items?.length || 0} 件商品</td>
-                        <td>¥${order.total_price.toFixed(2)}</td>
-                        <td><span class="badge badge--primary">${order.status}</span></td>
-                        <td><a href="/orders/${order.id}" class="btn btn--text">查看详情</a></td>
+                        <td>${itemsCount} 件商品</td>
+                        <td>¥${safeAmount}</td>
+                        <td><span class="badge badge--primary">${statusText}</span></td>
+                        <td>
+                            <div style="display:flex; gap: var(--spacing-xs); flex-wrap: wrap;">
+                                <button class="btn btn--secondary btn--sm" data-action="detail" data-id="${order.id}">查看详情</button>
+                                ${canCancel ? `<button class="btn btn--danger btn--sm" data-action="cancel" data-id="${order.id}">取消订单</button>` : ''}
+                            </div>
+                        </td>
                     </tr>
-                `).join('');
+                    <tr class="order-detail-row" data-order-id="${order.id}" style="display: none;">
+                        <td colspan="5">
+                            <div class="order-detail" data-loaded="false" style="background: var(--color-bg-soft); padding: var(--spacing-md); border-radius: 8px;">
+                                <div class="text-muted">点击“查看详情”加载订单明细</div>
+                            </div>
+                        </td>
+                    </tr>
+                    `;
+                }).join('');
+
+                tbody.querySelectorAll('[data-action="detail"]').forEach(btn => {
+                    btn.addEventListener('click', (e) => this.toggleOrderDetail(e.currentTarget.dataset.id, e.currentTarget));
+                });
+                tbody.querySelectorAll('[data-action="cancel"]').forEach(btn => {
+                    btn.addEventListener('click', (e) => this.cancelOrder(e.currentTarget.dataset.id));
+                });
             }
         } catch (error) {
             console.error('加载订单失败:', error);
+        }
+    }
+
+    async toggleOrderDetail(orderId, triggerBtn) {
+        const detailRow = document.querySelector(`.order-detail-row[data-order-id="${orderId}"]`);
+        if (!detailRow) return;
+
+        const detailBox = detailRow.querySelector('.order-detail');
+        const isOpen = detailRow.style.display !== 'none';
+
+        if (isOpen) {
+            detailRow.style.display = 'none';
+            if (triggerBtn) triggerBtn.textContent = '查看详情';
+            return;
+        }
+
+        detailRow.style.display = 'table-row';
+        if (triggerBtn) triggerBtn.textContent = '收起';
+
+        if (detailBox.dataset.loaded === 'true') return;
+
+        detailBox.innerHTML = '<div class="text-muted">正在加载订单明细...</div>';
+        try {
+            const resp = await API.order.getDetail(orderId);
+            const detail = resp.data || {};
+            detailBox.dataset.loaded = 'true';
+            detailBox.innerHTML = this.renderOrderDetail(detail);
+        } catch (error) {
+            console.error('加载订单详情失败:', error);
+            detailBox.innerHTML = '<div class="text-muted">加载失败，请稍后再试</div>';
+        }
+    }
+
+    renderOrderDetail(detail) {
+        const items = Array.isArray(detail.items) ? detail.items : [];
+        const visibleItems = items.slice(0, 2);
+        const hiddenCount = items.length - visibleItems.length;
+        const itemsHtml = visibleItems.length ? visibleItems.map(item => {
+            const unitPrice = Number(item.unit_price ?? item.price_at_purchase ?? item.price ?? 0);
+            const safeUnit = Number.isFinite(unitPrice) ? unitPrice.toFixed(2) : '0.00';
+            return `
+            <div style="display:flex; justify-content: space-between; align-items:center; padding: var(--spacing-xs) 0; border-bottom: 1px dashed var(--color-border);">
+                <div class="font-semibold">${item.title || '商品已删除'}</div>
+                <div class="text-muted" style="font-size: var(--font-size-sm);">${item.quantity || 0} × ¥${safeUnit}</div>
+            </div>
+            `;
+        }).join('') : '<div class="text-muted">暂无商品明细</div>';
+
+        const createdAt = detail.created_at ? new Date(detail.created_at).toLocaleString('zh-CN') : '暂无';
+        const address = detail.shipping_address || '暂无';
+        const moreTip = hiddenCount > 0 ? `<div class="text-muted" style="font-size: var(--font-size-sm); margin-top: var(--spacing-xs);">其余 ${hiddenCount} 件商品已省略</div>` : '';
+
+        return `
+        <div style="display:flex; flex-direction: column; gap: var(--spacing-sm);">
+            <div style="display:flex; flex-wrap: wrap; gap: var(--spacing-lg);">
+                <div><span class="text-muted">订单状态：</span>${detail.status_text || detail.status || '未知'}</div>
+                <div><span class="text-muted">下单时间：</span>${createdAt}</div>
+            </div>
+            <div><span class="text-muted">收货地址：</span>${address}</div>
+            <div>${itemsHtml}${moreTip}</div>
+        </div>
+        `;
+    }
+
+    async cancelOrder(orderId) {
+        const confirmed = window.confirm('确定取消该订单吗？取消后库存将恢复上架。');
+        if (!confirmed) return;
+
+        LoadingManager.show('正在取消订单...');
+        try {
+            await API.order.cancel(orderId);
+            NotificationManager.success('订单已取消，库存已恢复');
+            await this.loadOrders();
+        } catch (error) {
+            NotificationManager.error(error?.data?.message || '取消失败');
+        } finally {
+            LoadingManager.hide();
         }
     }
 
@@ -450,16 +548,21 @@ class ProfilePage {
                 document.getElementById('published-empty').style.display = 'none';
 
                 const container = document.getElementById('published-items');
-                container.innerHTML = items.map(item => `
+                container.innerHTML = items.map(item => {
+                    const imageHtml = item.image
+                        ? `<img src="${item.image}" alt="${item.title}" class="product-card__image">`
+                        : `<div class="product-card__image product-card__image--empty"><span>暂无图片</span></div>`;
+                    return `
                     <a href="/items/${item.id}" class="product-card" style="text-decoration: none; color: inherit;">
-                        <img src="${item.image || '/static/images/placeholder.png'}" alt="${item.title}" class="product-card__image">
+                        ${imageHtml}
                         <div class="product-card__content">
                             <h3 class="product-card__title">${item.title}</h3>
-                               <div class="product-card__price">¥${item.price?.toFixed ? item.price.toFixed(2) : item.price}</div>
+                            <div class="product-card__price">¥${item.price?.toFixed ? item.price.toFixed(2) : item.price}</div>
                             <div class="text-sm text-muted">库存: ${item.stock}</div>
                         </div>
                     </a>
-                `).join('');
+                    `;
+                }).join('');
             }
         } catch (error) {
             console.error('加载发布失败:', error);

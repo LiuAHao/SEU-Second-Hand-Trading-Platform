@@ -130,6 +130,48 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
+-- 2.10 添加 address_id 字段（统一命名）
+SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = 'seu_second_hand'
+    AND TABLE_NAME = 'orders'
+    AND COLUMN_NAME = 'address_id');
+
+SET @sql = IF(@col_exists = 0,
+    'ALTER TABLE orders ADD COLUMN address_id INT NULL COMMENT ''收货地址ID'' AFTER seller_id',
+    'SELECT ''Column address_id already exists'' AS message');
+
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- 2.11 添加 address_id 索引
+SET @index_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = 'seu_second_hand'
+    AND TABLE_NAME = 'orders'
+    AND INDEX_NAME = 'idx_address_id');
+
+SET @sql = IF(@index_exists = 0,
+    'CREATE INDEX idx_address_id ON orders(address_id)',
+    'SELECT "Index idx_address_id already exists" AS message');
+
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- 2.12 添加 address_id 外键约束
+SET @constraint_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+    WHERE TABLE_SCHEMA = 'seu_second_hand'
+    AND TABLE_NAME = 'orders'
+    AND CONSTRAINT_NAME = 'fk_orders_address_id');
+
+SET @sql = IF(@constraint_exists = 0,
+    'ALTER TABLE orders ADD CONSTRAINT fk_orders_address_id FOREIGN KEY (address_id) REFERENCES addresses(id)',
+    'SELECT ''Constraint fk_orders_address_id already exists'' AS message');
+
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
 SET @index_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
     WHERE TABLE_SCHEMA = 'seu_second_hand'
     AND TABLE_NAME = 'orders'

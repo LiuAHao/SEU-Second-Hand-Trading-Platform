@@ -104,11 +104,11 @@
                     <h2 style="font-size: var(--font-size-xl); margin-bottom: var(--spacing-lg); color: var(--color-primary);">商品图片</h2>
 
                     <div class="form-group">
-                        <label class="form-label">图片上传 <span style="color: var(--color-error);">*</span></label>
+                        <label class="form-label">图片上传 <span class="text-muted" style="font-size: var(--font-size-sm);">（可选）</span></label>
                         <div id="image-upload-area" style="border: 2px dashed var(--color-border); border-radius: var(--radius-lg); padding: var(--spacing-2xl); text-align: center; cursor: pointer; transition: all var(--duration-fast);">
                             <div style="font-size: 48px; margin-bottom: var(--spacing-md);">📷</div>
                             <p style="margin: 0 0 var(--spacing-sm); font-weight: 500;">点击或拖拽图片到此处上传</p>
-                            <p class="text-muted" style="font-size: var(--font-size-sm); margin: 0;">支持 JPG、PNG 格式，单张不超过5MB，最多上传9张</p>
+                            <p class="text-muted" style="font-size: var(--font-size-sm); margin: 0;">支持 JPG、PNG 格式，单张不超过5MB，最多上传9张（可不上传）</p>
                             <input type="file" id="image-input" accept="image/jpeg,image/png" multiple style="display: none;">
                         </div>
 
@@ -298,12 +298,6 @@ class PublishItemPage {
 
     async handleSubmit(e) {
         e.preventDefault();
-
-        // 验证
-        if (this.images.length === 0) {
-            NotificationManager.error('请至少上传一张商品图片');
-            return;
-        }
 
         const formData = new FormData(e.target);
         const itemData = {

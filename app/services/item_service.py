@@ -18,7 +18,7 @@ class ItemService:
         :return: 业务处理结果
         """
         # 查询推荐商品（按浏览量倒序排序，取前limit条）
-        items = Item.query.filter_by(is_active=True).order_by(Item.views.desc()).limit(limit).all()
+        items = Item.query.filter(Item.is_active == True, Item.stock > 0).order_by(Item.views.desc()).limit(limit).all()
 
         # 组装商品数据
         item_list = []
@@ -60,7 +60,7 @@ class ItemService:
         :return: 业务处理结果
         """
         # 基础查询条件
-        query_filter = [Item.is_active == True]
+        query_filter = [Item.is_active == True, Item.stock > 0]
 
         # 搜索关键词过滤
         if query.strip():

@@ -131,25 +131,40 @@
  * 首页数据加载和交互
  */
 document.addEventListener('DOMContentLoaded', async () => {
+    const renderCardImage = (item) => {
+        if (item.image) {
+            return `<img src="${item.image}" alt="${item.title}" class="product-card__image">`;
+        }
+        return `<div class="product-card__image product-card__image--empty"><span>暂无图片</span></div>`;
+    };
     // 加载热门商品
     try {
         const featuredResponse = await API.recommend.getPopular({ limit: 4 });
         const featuredContainer = document.getElementById('featured-items');
-        const featuredData = (featuredResponse.data && featuredResponse.data.items) || featuredResponse.data || [];
+        const featuredData = ((featuredResponse.data && featuredResponse.data.items) || featuredResponse.data || [])
+            .filter(item => (item.stock ?? 0) > 0 && item.is_active !== false);
         
         if (featuredData.length > 0) {
             featuredContainer.innerHTML = featuredData.map(item => `
                 <a href="/items/${item.id}" class="product-card" style="text-decoration: none; color: inherit;">
-                    <img src="${item.image || '/static/images/placeholder.png'}" alt="${item.title}" class="product-card__image">
+                    ${renderCardImage(item)}
                     <div class="product-card__content">
                         <h3 class="product-card__title">${item.title}</h3>
                         <p class="product-card__description">${item.description.substring(0, 60)}...</p>
-                        <div class="product-card__price">¥${item.price.toFixed(2)}</div>
+                        <div class="product-card__price">¥${Number(item.price || 0).toFixed(2)}</div>
                         <div class="product-card__seller text-sm text-muted">卖家: ${item.seller_name}</div>
                         ${item.stock > 0 ? '' : '<span class="product-card__badge">缺货</span>'}
                     </div>
                 </a>
             `).join('');
+        } else {
+            featuredContainer.innerHTML = `
+                <div class="empty-state" style="grid-column: 1 / -1;">
+                    <div class="empty-state__icon">🛒</div>
+                    <div class="empty-state__title">暂无热门商品</div>
+                    <p class="empty-state__description">稍后再来看看，或去发布一条新商品吧</p>
+                </div>
+            `;
         }
     } catch (error) {
         console.error('加载热门商品失败:', error);
@@ -166,21 +181,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         const latestResponse = await API.recommend.getLatest({ limit: 4 });
         const latestContainer = document.getElementById('latest-items');
-        const latestData = (latestResponse.data && latestResponse.data.items) || latestResponse.data || [];
+        const latestData = ((latestResponse.data && latestResponse.data.items) || latestResponse.data || [])
+            .filter(item => (item.stock ?? 0) > 0 && item.is_active !== false);
         
         if (latestData.length > 0) {
             latestContainer.innerHTML = latestData.map(item => `
                 <a href="/items/${item.id}" class="product-card" style="text-decoration: none; color: inherit;">
-                    <img src="${item.image || '/static/images/placeholder.png'}" alt="${item.title}" class="product-card__image">
+                    ${renderCardImage(item)}
                     <div class="product-card__content">
                         <h3 class="product-card__title">${item.title}</h3>
                         <p class="product-card__description">${item.description.substring(0, 60)}...</p>
-                        <div class="product-card__price">¥${item.price.toFixed(2)}</div>
+                        <div class="product-card__price">¥${Number(item.price || 0).toFixed(2)}</div>
                         <div class="product-card__seller text-sm text-muted">卖家: ${item.seller_name}</div>
                         ${item.stock > 0 ? '' : '<span class="product-card__badge">缺货</span>'}
                     </div>
                 </a>
             `).join('');
+        } else {
+            latestContainer.innerHTML = `
+                <div class="empty-state" style="grid-column: 1 / -1;">
+                    <div class="empty-state__icon">📦</div>
+                    <div class="empty-state__title">暂无最新上架</div>
+                    <p class="empty-state__description">当前没有新商品，欢迎发布您的二手好物</p>
+                </div>
+            `;
         }
     } catch (error) {
         console.error('加载最新商品失败:', error);

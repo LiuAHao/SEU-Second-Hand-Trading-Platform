@@ -11,9 +11,9 @@
 </div>
 
 <div class="container">
-    <div class="grid grid--cols-4">
+    <div class="grid items-layout">
         <!-- 左侧筛选栏 -->
-        <div style="grid-column: 1 / 2;">
+        <div class="filter-sidebar" style="grid-column: 1 / 2;">
             <div class="card" style="position: sticky; top: 80px;">
                 <div class="card__header">
                     <h3 style="margin: 0;">筛选条件</h3>
@@ -34,9 +34,10 @@
                     <!-- 价格范围 -->
                     <div class="form-group">
                         <label class="form-label">价格范围</label>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-sm);">
-                            <input type="number" id="min-price" class="form-input" placeholder="最小" min="0">
-                            <input type="number" id="max-price" class="form-input" placeholder="最大" min="0">
+                        <div class="price-range">
+                            <input type="number" id="min-price" class="form-input form-input--compact" placeholder="最小" min="0">
+                            <span class="price-range__sep">—</span>
+                            <input type="number" id="max-price" class="form-input form-input--compact" placeholder="最大" min="0">
                         </div>
                     </div>
 
@@ -59,7 +60,7 @@
         </div>
 
         <!-- 右侧内容区 -->
-        <div style="grid-column: 2 / -1;">
+        <div class="items-content" style="grid-column: 2 / -1;">
             <!-- 空状态 -->
             <div id="empty-state" class="empty-state" style="display: none;">
                 <div class="empty-state__icon">📭</div>
@@ -214,9 +215,13 @@ class ItemsPage {
             return;
         }
 
-        container.innerHTML = items.map(item => `
+        container.innerHTML = items.map(item => {
+            const imageHtml = item.image
+                ? `<img src="${item.image}" alt="${item.title}" class="product-card__image">`
+                : `<div class="product-card__image product-card__image--empty"><span>暂无图片</span></div>`;
+            return `
             <a href="/items/${item.id}" class="product-card" style="text-decoration: none; color: inherit;">
-                <img src="${item.image || '/static/images/placeholder.png'}" alt="${item.title}" class="product-card__image">
+                ${imageHtml}
                 <div class="product-card__content">
                     <h3 class="product-card__title">${item.title}</h3>
                     <p class="product-card__description">${item.description.substring(0, 60)}...</p>
@@ -225,7 +230,8 @@ class ItemsPage {
                     ${item.stock > 0 ? '' : '<span class="product-card__badge">缺货</span>'}
                 </div>
             </a>
-        `).join('');
+            `;
+        }).join('');
     }
 
     renderPagination(pagination) {

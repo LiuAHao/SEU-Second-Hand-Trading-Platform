@@ -7,9 +7,9 @@ from flask import Blueprint, request, g
 from app.services.order_service import OrderService
 from app.middleware.auth_middleware import auth_required
 from app.utils.decorators import validate_request
-from app.utils.response import success_response, error_response, validation_response, not_found_response
+from app.utils.response import APIResponse
 
-orders_bp = Blueprint('orders_api', __name__, url_prefix='/orders')
+orders_bp = Blueprint('orders_api', __name__, url_prefix='/api/orders')
 
 
 @orders_bp.route('/', methods=['POST'])
@@ -70,20 +70,19 @@ def create_order():
         )
         
         if success:
-            return success_response(
+            return APIResponse.success(
                 data=result,
                 message="订单创建成功"
             )
         else:
-            return error_response(
+            return APIResponse.error(
                 message=result,
-                code=400
+                code=APIResponse.VALIDATION_ERROR
             )
-            
+
     except Exception as e:
-        return error_response(
-            message=f"创建订单失败: {str(e)}",
-            code=500
+        return APIResponse.server_error(
+            message=f"创建订单失败: {str(e)}"
         )
 
 
@@ -156,20 +155,19 @@ def get_orders_list():
         )
         
         if success:
-            return success_response(
+            return APIResponse.success(
                 data=result,
                 message="获取订单列表成功"
             )
         else:
-            return error_response(
+            return APIResponse.error(
                 message=result,
-                code=400
+                code=APIResponse.ERROR
             )
-            
+
     except Exception as e:
-        return error_response(
-            message=f"获取订单列表失败: {str(e)}",
-            code=500
+        return APIResponse.server_error(
+            message=f"获取订单列表失败: {str(e)}"
         )
 
 
@@ -233,23 +231,23 @@ def get_order_detail(order_id):
         )
         
         if success:
-            return success_response(
+            return APIResponse.success(
                 data=result,
                 message="获取订单详情成功"
             )
         else:
-            if "不存在" in result or "无权" in result:
-                return not_found_response(message=result)
-            else:
-                return error_response(
-                    message=result,
-                    code=400
-                )
-                
+            if "不存在" in result:
+                return APIResponse.not_found(message=result)
+            if "无权" in result:
+                return APIResponse.permission_error(message=result)
+            return APIResponse.error(
+                message=result,
+                code=APIResponse.ERROR
+            )
+
     except Exception as e:
-        return error_response(
-            message=f"获取订单详情失败: {str(e)}",
-            code=500
+        return APIResponse.server_error(
+            message=f"获取订单详情失败: {str(e)}"
         )
 
 
@@ -294,20 +292,19 @@ def update_order_status(order_id):
         )
         
         if success:
-            return success_response(
+            return APIResponse.success(
                 data=None,
                 message=result
             )
         else:
-            return error_response(
+            return APIResponse.error(
                 message=result,
-                code=400
+                code=APIResponse.ERROR
             )
-            
+
     except Exception as e:
-        return error_response(
-            message=f"更新订单状态失败: {str(e)}",
-            code=500
+        return APIResponse.server_error(
+            message=f"更新订单状态失败: {str(e)}"
         )
 
 
@@ -340,20 +337,19 @@ def cancel_order(order_id):
         )
         
         if success:
-            return success_response(
+            return APIResponse.success(
                 data=None,
                 message=result
             )
         else:
-            return error_response(
+            return APIResponse.error(
                 message=result,
-                code=400
+                code=APIResponse.ERROR
             )
-            
+
     except Exception as e:
-        return error_response(
-            message=f"取消订单失败: {str(e)}",
-            code=500
+        return APIResponse.server_error(
+            message=f"取消订单失败: {str(e)}"
         )
 
 
@@ -393,20 +389,19 @@ def get_addresses():
         success, result = OrderService.get_addresses(user_id)
         
         if success:
-            return success_response(
+            return APIResponse.success(
                 data=result,
                 message="获取地址列表成功"
             )
         else:
-            return error_response(
+            return APIResponse.error(
                 message=result,
-                code=400
+                code=APIResponse.ERROR
             )
-            
+
     except Exception as e:
-        return error_response(
-            message=f"获取地址列表失败: {str(e)}",
-            code=500
+        return APIResponse.server_error(
+            message=f"获取地址列表失败: {str(e)}"
         )
 
 

@@ -108,6 +108,146 @@ const mockItems = [
     reviews: 15,
     createdAt: '2024-12-16',
   },
+  {
+    id: 6,
+    title: 'Kindle Paperwhite',
+    description: '第11代，8GB，含原装保护壳，电池健康',
+    price: 520,
+    originalPrice: 980,
+    stock: 6,
+    images: ['https://via.placeholder.com/400x300?text=Kindle'],
+    category: 'electronics',
+    seller: mockUsers['test@seu.edu.cn'],
+    rating: 4.6,
+    reviews: 18,
+    createdAt: '2024-12-15',
+  },
+  {
+    id: 7,
+    title: '宿舍小冰箱',
+    description: '美的 90L 双门小冰箱，静音节能，送货到寝室',
+    price: 480,
+    originalPrice: 899,
+    stock: 2,
+    images: ['https://via.placeholder.com/400x300?text=Mini+Fridge'],
+    category: 'furniture',
+    seller: mockUsers['admin@seu.edu.cn'],
+    rating: 4.4,
+    reviews: 9,
+    createdAt: '2024-12-14',
+  },
+  {
+    id: 8,
+    title: '考研政治笔记全套',
+    description: '亲笔整理逐章框架+真题标注，赠思维导图 PDF',
+    price: 120,
+    originalPrice: 0,
+    stock: 10,
+    images: ['https://via.placeholder.com/400x300?text=Study+Notes'],
+    category: 'books',
+    seller: mockUsers['test@seu.edu.cn'],
+    rating: 4.9,
+    reviews: 34,
+    createdAt: '2024-12-13',
+  },
+  {
+    id: 9,
+    title: '篮球鞋 Nike Kyrie',
+    description: '42码，九成新，室内木地板使用，包邮校内自提',
+    price: 360,
+    originalPrice: 899,
+    stock: 3,
+    images: ['https://via.placeholder.com/400x300?text=Basketball+Shoes'],
+    category: 'sports',
+    seller: mockUsers['admin@seu.edu.cn'],
+    rating: 4.5,
+    reviews: 11,
+    createdAt: '2024-12-12',
+  },
+  {
+    id: 10,
+    title: '显示器 27 寸 2K',
+    description: 'IPS 2K 75Hz，带支架和HDMI线，屏幕无亮点',
+    price: 680,
+    originalPrice: 1299,
+    stock: 5,
+    images: ['https://via.placeholder.com/400x300?text=Monitor+27'],
+    category: 'electronics',
+    seller: mockUsers['test@seu.edu.cn'],
+    rating: 4.7,
+    reviews: 20,
+    createdAt: '2024-12-11',
+  },
+  {
+    id: 11,
+    title: '蓝牙键盘鼠标套装',
+    description: '支持多设备切换，含静音鼠标，适合平板/笔记本',
+    price: 150,
+    originalPrice: 299,
+    stock: 12,
+    images: ['https://via.placeholder.com/400x300?text=Keyboard+Mouse'],
+    category: 'electronics',
+    seller: mockUsers['admin@seu.edu.cn'],
+    rating: 4.3,
+    reviews: 7,
+    createdAt: '2024-12-10',
+  },
+  {
+    id: 12,
+    title: '宿舍收纳柜',
+    description: '四层抽屉塑料收纳柜，稳固无异味，含防尘罩',
+    price: 90,
+    originalPrice: 169,
+    stock: 8,
+    images: ['https://via.placeholder.com/400x300?text=Storage+Cabinet'],
+    category: 'furniture',
+    seller: mockUsers['test@seu.edu.cn'],
+    rating: 4.2,
+    reviews: 5,
+    createdAt: '2024-12-09',
+  },
+  {
+    id: 13,
+    title: '平板支架',
+    description: '铝合金可折叠，支撑稳固，支持11英寸内平板',
+    price: 45,
+    originalPrice: 89,
+    stock: 15,
+    images: ['https://via.placeholder.com/400x300?text=Tablet+Stand'],
+    category: 'electronics',
+    seller: mockUsers['admin@seu.edu.cn'],
+    rating: 4.1,
+    reviews: 6,
+    createdAt: '2024-12-08',
+  },
+  {
+    id: 14,
+    title: '考研数学真题',
+    description: '数学二 2005-2024真题套装，附视频解析链接',
+    price: 88,
+    originalPrice: 0,
+    stock: 20,
+    images: ['https://via.placeholder.com/400x300?text=Math+Papers'],
+    category: 'books',
+    seller: mockUsers['test@seu.edu.cn'],
+    rating: 4.8,
+    reviews: 16,
+    createdAt: '2024-12-07',
+  },
+  {
+    id: 15,
+    title: '插线板+Type-C快充',
+    description: '6位插孔+2C1A，支持 65W PD，带过载保护',
+    price: 110,
+    originalPrice: 159,
+    stock: 9,
+    images: ['https://via.placeholder.com/400x300?text=Power+Strip'],
+    category: 'other',
+    seller: mockUsers['admin@seu.edu.cn'],
+    rating: 4.6,
+    reviews: 13,
+    createdAt: '2024-12-06',
+  },
 ];
 
 /**
@@ -161,14 +301,20 @@ class MockAPIInterceptor {
     }
 
     // 商品相关
-    if (endpoint === '/items/search' && method === 'get') {
+    if ((endpoint === '/items/search' && method === 'get') || (endpoint === '/item/search' && method === 'post')) {
       return MockAPIInterceptor.handleSearchItems(data);
     }
     if (endpoint.startsWith('/items/') && method === 'get') {
       return MockAPIInterceptor.handleGetItem(endpoint);
     }
+    if (endpoint.startsWith('/item/getDetail/') && method === 'get') {
+      return MockAPIInterceptor.handleGetItem(endpoint.replace('/item/getDetail', '/items'));
+    }
     if (endpoint === '/items' && method === 'get') {
       return MockAPIInterceptor.handleGetItems(data);
+    }
+    if (endpoint === '/item/getFeatured' && method === 'get') {
+      return MockAPIInterceptor.handleGetFeatured(data);
     }
 
     // 分类相关
@@ -440,6 +586,18 @@ class MockAPIInterceptor {
     };
   }
 
+  static handleGetFeatured(params = {}) {
+    const limit = Number(params.limit) || 4;
+    return {
+      statusCode: 200,
+      data: {
+        items: mockItems
+          .sort((a, b) => b.reviews - a.reviews)
+          .slice(0, limit),
+      },
+    };
+  }
+
   // ============ 购物车相关处理 ============
   static handleGetCart() {
     return {
@@ -627,7 +785,19 @@ function enableMockAPI() {
   console.log('✅ Mock API 已启用 - 所有 API 请求将使用模拟数据');
 }
 
-// 自动启用（如果设置了标志）
-if (window.USE_MOCK_API === true) {
+// 允许通过 localStorage 持久化开关，便于刷新后仍保持 Mock 状态
+const mockFlag = window.USE_MOCK_API === true || localStorage.getItem('USE_MOCK_API') === 'true';
+if (mockFlag) {
+  window.USE_MOCK_API = true;
   enableMockAPI();
 }
+
+// 控制台可调用：setMockAPIEnabled(true/false)，同时刷新页面
+window.setMockAPIEnabled = (enabled) => {
+  localStorage.setItem('USE_MOCK_API', enabled ? 'true' : 'false');
+  window.USE_MOCK_API = enabled === true;
+  if (enabled) {
+    enableMockAPI();
+  }
+  location.reload();
+};

@@ -36,23 +36,23 @@
                             <div class="grid grid--cols-2">
                                 <div class="form-group">
                                     <label class="form-label">收货人</label>
-                                    <input type="text" name="recipient_name" class="form-input" placeholder="请填写收货人" required>
+                                    <input type="text" name="recipient_name" class="form-input" placeholder="请填写收货人">
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label">手机号</label>
-                                    <input type="text" name="phone" class="form-input" placeholder="请填写手机号" required>
+                                    <input type="text" name="phone" class="form-input" placeholder="请填写手机号">
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label">城市</label>
-                                    <input type="text" name="city" class="form-input" placeholder="如：南京" required>
+                                    <input type="text" name="city" class="form-input" placeholder="如：南京">
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label">区/宿舍楼</label>
-                                    <input type="text" name="district" class="form-input" placeholder="如：九龙湖宿舍 A 栋" required>
+                                    <input type="text" name="district" class="form-input" placeholder="如：九龙湖宿舍 A 栋">
                                 </div>
                                 <div class="form-group" style="grid-column: 1 / -1;">
                                     <label class="form-label">详细地址</label>
-                                    <input type="text" name="detail" class="form-input" placeholder="楼层、房间号等" required>
+                                    <input type="text" name="detail" class="form-input" placeholder="楼层、房间号等">
                                 </div>
                                 <div class="form-group" style="grid-column: 1 / -1;">
                                     <label class="form-checkbox" style="display: inline-flex; align-items: center; gap: 8px;">
@@ -405,16 +405,20 @@ class CheckoutPage {
                 const response = await API.order.create(orderData);
                 LoadingManager.hide();
 
-                if (response.data?.orderId) {
-                    NotificationManager.success('订单提交成功！');
-                    
-                    // 清空购物车
-                    CartManager.clear();
+                // 按统一格式解析返回
+                const code = response?.code;
+                const message = response?.message;
+                const orderDataResp = response?.data || {};
+                const orderId = orderDataResp.orderId || orderDataResp.order_id;
 
-                    // 跳转到支付页面或订单详情页
+                if (code === 0 && orderId) {
+                    NotificationManager.success('订单提交成功！');
+                    CartManager.clear();
                     setTimeout(() => {
-                        window.location.href = `/orders/${response.data.orderId}`;
-                    }, 1000);
+                        window.location.href = `/profile`;
+                    }, 800);
+                } else {
+                    NotificationManager.error(message || '订单提交失败，请稍后重试');
                 }
             } catch (error) {
                 LoadingManager.hide();

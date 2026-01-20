@@ -106,48 +106,7 @@ def register_routes(app):
         """使用条款页"""
         return render_template('terms.html')
     
-    # ============ API 路由（Mock 数据用） ============
-    
-    
-    @app.route('/api/cart', methods=['GET'])
-    def api_get_cart():
-        """获取购物车 API"""
-        return jsonify({
-            'statusCode': 200,
-            'data': {'items': []}
-        })
-    
-    @app.route('/api/cart/add', methods=['POST'])
-    def api_add_to_cart():
-        """添加到购物车 API"""
-        return jsonify({
-            'statusCode': 200,
-            'data': {'cart': []}
-        })
-    
-    @app.route('/api/orders', methods=['POST'])
-    def api_create_order():
-        """创建订单 API"""
-        return jsonify({
-            'statusCode': 200,
-            'data': {'order': None}
-        })
-    
-    @app.route('/api/orders', methods=['GET'])
-    def api_get_orders():
-        """获取订单列表 API"""
-        return jsonify({
-            'statusCode': 200,
-            'data': {'orders': []}
-        })
-    
-    @app.route('/api/addresses', methods=['GET'])
-    def api_get_addresses():
-        """获取地址列表 API"""
-        return jsonify({
-            'statusCode': 200,
-            'data': {'addresses': []}
-        })
+    # ============ 旧 Mock API 已废弃，避免与真实 API 冲突 ============
     
     # ============ 错误处理 ============
     

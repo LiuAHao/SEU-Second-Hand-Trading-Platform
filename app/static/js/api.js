@@ -146,9 +146,13 @@ class APIClient {
       type: ERROR_TYPES.SERVER_ERROR,
       message: `HTTP Error ${statusCode}`,
     };
-    
+
+    const serverMessage = (data && (data.message || data.error || data.msg)) || '';
+    const message = serverMessage || errorInfo.message;
+
     return {
       ...errorInfo,
+      message,
       statusCode,
       data,
     };

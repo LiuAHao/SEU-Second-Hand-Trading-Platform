@@ -58,10 +58,27 @@ class OrderService:
         if not isinstance(items_data, list):
             return False, "items_data必须是列表"
         
+        # 标准化并验证商品ID/数量（转为整数，过滤非法值）
+        normalized_items = []
+        for item in items_data:
+            try:
+                item_id = int(item.get('item_id'))
+                quantity = int(item.get('quantity'))
+            except (TypeError, ValueError):
+                return False, "商品或数量格式无效"
+            if item_id <= 0:
+                return False, "商品ID无效"
+            if quantity <= 0:
+                return False, "购买数量必须大于0"
+            normalized_items.append({'item_id': item_id, 'quantity': quantity})
+
         # 检查是否有重复的商品ID
-        item_ids = [item['item_id'] for item in items_data]
+        item_ids = [item['item_id'] for item in normalized_items]
         if len(item_ids) != len(set(item_ids)):
             return False, "购物车中存在重复商品"
+
+        # 后续逻辑统一使用规范化后的列表
+        items_data = normalized_items
         
         # 开启事务
         try:
@@ -166,7 +183,6 @@ class OrderService:
                 address_id=address_id,  # 添加地址ID
                 status='pending',
                 shipping_address=shipping_address,
-                total_price=total_amount,  # 设置total_price（与total_amount相同）
                 remarks='',  # 空备注
                 created_at=datetime.now(),
                 updated_at=datetime.now()
@@ -194,6 +210,11 @@ class OrderService:
                 # 扣减库存
                 item.stock -= quantity
                 item.updated_at = datetime.now()
+
+                # 库存为0时自动下架
+                if item.stock <= 0:
+                    item.stock = 0
+                    item.is_active = False
                 
                 # 记录库存变化日志
                 logger.info(f"订单 {order.id}: 商品 {item.id} 扣减库存 {quantity}, 剩余 {item.stock}")

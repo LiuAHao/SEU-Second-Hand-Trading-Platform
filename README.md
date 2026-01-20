@@ -23,13 +23,13 @@ pip install -r requirements.txt
 2. 初始化数据库
 ```bash
 mysql -u root -p -e "CREATE DATABASE seu_second_hand CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mysql -u root -p seu_second_hand < database/schema_optimized.sql
+mysql --default-character-set=utf8mb4 -u root -p seu_second_hand < database/schema_optimized.sql
 ```
-（可选）导入示例数据：`mysql -u root -p seu_second_hand < database/seed_data.sql`
-（旧库迁移）执行：`mysql -u root -p seu_second_hand < database/migration_v1_to_v2_fixed.sql`
+（可选）导入示例数据：`mysql --default-character-set=utf8mb4 -u root -p seu_second_hand < database/sample_seed.sql`
+（旧库迁移）执行：`mysql --default-character-set=utf8mb4 -u root -p seu_second_hand < database/migration_v1_to_v2_fixed.sql`
 
 3. 配置环境变量
-复制 .env.example 为 .env，设置 DATABASE_URI/SECRET_KEY/JWT_SECRET_KEY。
+创建 .env，设置 DATABASE_URI/SECRET_KEY/JWT_SECRET_KEY。
 
 4. 启动
 ```bash

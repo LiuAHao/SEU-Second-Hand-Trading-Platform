@@ -1,129 +1,137 @@
--- 东南大学校园二手交易平台 - 数据库结构定义
--- 字符集：utf8mb4_unicode_ci（支持中文和emoji）
--- 时间：2024-12-24
+-- 基础建表脚本（MySQL 8+，utf8mb4_unicode_ci）
+-- 如需调整库名，先手动执行：CREATE DATABASE IF NOT EXISTS seu_secondhand DEFAULT CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- 再执行：USE seu_secondhand;
 
--- =========================================
--- 1. 用户表 (Users)
--- =========================================
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- 用户表
 CREATE TABLE IF NOT EXISTS users (
-    id INT PRIMARY KEY AUTO_INCREMENT COMMENT '用户ID',
-    username VARCHAR(50) UNIQUE NOT NULL COMMENT '用户名',
-    email VARCHAR(100) UNIQUE NOT NULL COMMENT '邮箱（必须为@seu.edu.cn）',
-    password_hash VARCHAR(255) NOT NULL COMMENT '密码哈希值',
-    phone VARCHAR(20) COMMENT '电话号码',
-    avatar_url VARCHAR(255) COMMENT '头像URL',
-    bio TEXT COMMENT '个人简介',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    is_active BOOLEAN DEFAULT TRUE COMMENT '账户是否激活',
-    
-    KEY idx_username (username) COMMENT '用户名索引',
-    KEY idx_email (email) COMMENT '邮箱索引',
-    KEY idx_created_at (created_at) COMMENT '创建时间索引'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
+  id INT PRIMARY KEY AUTO_INCREMENT COMMENT '用户ID',
+  username VARCHAR(50) NOT NULL UNIQUE COMMENT '用户名',
+  password_hash VARCHAR(255) NOT NULL COMMENT '密码哈希',
+  email VARCHAR(100) NOT NULL UNIQUE COMMENT '邮箱（@seu.edu.cn）',
+  phone VARCHAR(20) DEFAULT NULL COMMENT '手机号',
+  avatar_url VARCHAR(255) DEFAULT NULL COMMENT '头像',
+  bio TEXT DEFAULT NULL COMMENT '个人简介',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  is_active TINYINT(1) NOT NULL DEFAULT 1 COMMENT '是否激活',
+  INDEX idx_users_username (username),
+  INDEX idx_users_email (email),
+  INDEX idx_users_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
--- =========================================
--- 2. 商品表 (Items)
--- =========================================
-CREATE TABLE IF NOT EXISTS items (
-    id INT PRIMARY KEY AUTO_INCREMENT COMMENT '商品ID',
-    seller_id INT NOT NULL COMMENT '卖家ID',
-    title VARCHAR(100) NOT NULL COMMENT '商品标题',
-    description TEXT NOT NULL COMMENT '商品描述',
-    category VARCHAR(50) NOT NULL COMMENT '分类',
-    price DECIMAL(10, 2) NOT NULL COMMENT '价格',
-    stock INT NOT NULL DEFAULT 0 COMMENT '库存数量（关键字段）',
-    views INT DEFAULT 0 COMMENT '浏览次数',
-    favorites INT DEFAULT 0 COMMENT '收藏次数',
-    image_url VARCHAR(255) COMMENT '商品图片URL',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    is_active BOOLEAN DEFAULT TRUE COMMENT '是否在售',
-    
-    FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE COMMENT '外键：卖家',
-    KEY idx_seller_id (seller_id) COMMENT '卖家索引',
-    KEY idx_category (category) COMMENT '分类索引',
-    KEY idx_price (price) COMMENT '价格索引',
-    KEY idx_created_at (created_at) COMMENT '创建时间索引',
-    FULLTEXT KEY idx_title_description (title, description) COMMENT '全文搜索索引'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商品表';
-
-
--- =========================================
--- 3. 订单表 (Orders)
--- =========================================
-CREATE TABLE IF NOT EXISTS orders (
-    id INT PRIMARY KEY AUTO_INCREMENT COMMENT '订单ID',
-    buyer_id INT NOT NULL COMMENT '买家ID',
-    total_amount DECIMAL(10, 2) NOT NULL COMMENT '订单总金额',
-    status VARCHAR(50) DEFAULT 'pending' COMMENT '订单状态（pending/paid/shipped/completed/cancelled）',
-    shipping_address VARCHAR(255) NOT NULL COMMENT '配送地址',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    
-    FOREIGN KEY (buyer_id) REFERENCES users(id) ON DELETE CASCADE COMMENT '外键：买家',
-    KEY idx_buyer_id (buyer_id) COMMENT '买家索引',
-    KEY idx_status (status) COMMENT '状态索引',
-    KEY idx_created_at (created_at) COMMENT '创建时间索引'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='订单表';
-
-
--- =========================================
--- 4. 订单明细表 (Order_Items)
--- =========================================
-CREATE TABLE IF NOT EXISTS order_items (
-    id INT PRIMARY KEY AUTO_INCREMENT COMMENT '订单明细ID',
-    order_id INT NOT NULL COMMENT '订单ID',
-    item_id INT NOT NULL COMMENT '商品ID',
-    quantity INT NOT NULL DEFAULT 1 COMMENT '购买数量',
-    price_at_purchase DECIMAL(10, 2) NOT NULL COMMENT '购买时价格',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    
-    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE COMMENT '外键：订单',
-    FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE COMMENT '外键：商品',
-    KEY idx_order_id (order_id) COMMENT '订单索引',
-    KEY idx_item_id (item_id) COMMENT '商品索引'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='订单明细表';
-
-
--- =========================================
--- 5. 配送地址表 (Addresses)
--- =========================================
+-- 地址表
 CREATE TABLE IF NOT EXISTS addresses (
-    id INT PRIMARY KEY AUTO_INCREMENT COMMENT '地址ID',
-    user_id INT NOT NULL COMMENT '用户ID',
-    recipient_name VARCHAR(50) NOT NULL COMMENT '收货人姓名',
-    phone VARCHAR(20) NOT NULL COMMENT '收货人电话',
-    province VARCHAR(50) COMMENT '省份',
-    city VARCHAR(50) COMMENT '城市',
-    district VARCHAR(50) COMMENT '区县',
-    detail VARCHAR(255) NOT NULL COMMENT '详细地址',
-    is_default BOOLEAN DEFAULT FALSE COMMENT '是否为默认地址',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE COMMENT '外键：用户',
-    KEY idx_user_id (user_id) COMMENT '用户索引'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='配送地址表';
+  id INT PRIMARY KEY AUTO_INCREMENT COMMENT '地址ID',
+  user_id INT NOT NULL COMMENT '用户ID',
+  recipient_name VARCHAR(50) NOT NULL COMMENT '收货人姓名',
+  phone VARCHAR(20) NOT NULL COMMENT '收货人电话',
+  province VARCHAR(50) DEFAULT NULL COMMENT '省',
+  city VARCHAR(50) DEFAULT NULL COMMENT '市',
+  district VARCHAR(50) DEFAULT NULL COMMENT '区/校区',
+  detail VARCHAR(255) NOT NULL COMMENT '详细地址',
+  is_default TINYINT(1) NOT NULL DEFAULT 0 COMMENT '默认地址',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  INDEX idx_address_user (user_id),
+  CONSTRAINT fk_addresses_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 商品表
+CREATE TABLE IF NOT EXISTS items (
+  id INT PRIMARY KEY AUTO_INCREMENT COMMENT '商品ID',
+  seller_id INT NOT NULL COMMENT '卖家ID',
+  title VARCHAR(100) NOT NULL COMMENT '标题',
+  description TEXT NOT NULL COMMENT '描述',
+  category VARCHAR(50) NOT NULL DEFAULT 'other' COMMENT '分类',
+  price DECIMAL(10,2) NOT NULL COMMENT '价格',
+  stock INT NOT NULL DEFAULT 0 COMMENT '库存',
+  views INT NOT NULL DEFAULT 0 COMMENT '浏览次数',
+  favorites INT NOT NULL DEFAULT 0 COMMENT '收藏次数',
+  image_url VARCHAR(255) DEFAULT NULL COMMENT '图片',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  is_active TINYINT(1) NOT NULL DEFAULT 1 COMMENT '是否在售',
+  INDEX idx_seller_id (seller_id),
+  INDEX idx_category (category),
+  INDEX idx_price (price),
+  INDEX idx_stock (stock),
+  INDEX idx_created_at (created_at),
+  INDEX idx_is_active (is_active),
+  CONSTRAINT fk_items_seller FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- =========================================
--- 6. 评价表 (Reviews) - 可选
--- =========================================
+-- 收藏表
+CREATE TABLE IF NOT EXISTS favorites (
+  id INT PRIMARY KEY AUTO_INCREMENT COMMENT '收藏ID',
+  user_id INT NOT NULL COMMENT '用户ID',
+  item_id INT NOT NULL COMMENT '商品ID',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '收藏时间',
+  UNIQUE KEY uk_user_item (user_id, item_id),
+  INDEX idx_user_id (user_id),
+  INDEX idx_item_id (item_id),
+  INDEX idx_created_at (created_at),
+  CONSTRAINT fk_fav_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_fav_item FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 订单表
+CREATE TABLE IF NOT EXISTS orders (
+  id INT PRIMARY KEY AUTO_INCREMENT COMMENT '订单ID',
+  order_number VARCHAR(50) NOT NULL UNIQUE COMMENT '订单号',
+  buyer_id INT NOT NULL COMMENT '买家ID',
+  seller_id INT NOT NULL COMMENT '卖家ID',
+  address_id INT NOT NULL COMMENT '收货地址ID',
+  total_amount DECIMAL(10,2) NOT NULL COMMENT '总金额',
+  status VARCHAR(50) NOT NULL DEFAULT 'pending' COMMENT '状态',
+  remarks TEXT DEFAULT NULL COMMENT '备注',
+  shipping_address VARCHAR(255) DEFAULT NULL COMMENT '配送地址快照',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  INDEX idx_order_number (order_number),
+  INDEX idx_buyer_id (buyer_id),
+  INDEX idx_seller_id (seller_id),
+  INDEX idx_status (status),
+  INDEX idx_order_created (created_at),
+  CONSTRAINT fk_orders_buyer FOREIGN KEY (buyer_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_orders_seller FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_orders_address FOREIGN KEY (address_id) REFERENCES addresses(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 订单明细表
+CREATE TABLE IF NOT EXISTS order_items (
+  id INT PRIMARY KEY AUTO_INCREMENT COMMENT '订单明细ID',
+  order_id INT NOT NULL COMMENT '订单ID',
+  item_id INT NOT NULL COMMENT '商品ID',
+  quantity INT NOT NULL DEFAULT 1 COMMENT '数量',
+  unit_price DECIMAL(10,2) NOT NULL COMMENT '单价',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  INDEX idx_order_id (order_id),
+  INDEX idx_item_id (item_id),
+  CONSTRAINT fk_order_items_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+  CONSTRAINT fk_order_items_item FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 评价表
 CREATE TABLE IF NOT EXISTS reviews (
-    id INT PRIMARY KEY AUTO_INCREMENT COMMENT '评价ID',
-    order_id INT NOT NULL COMMENT '订单ID',
-    item_id INT NOT NULL COMMENT '商品ID',
-    reviewer_id INT NOT NULL COMMENT '评价者ID',
-    reviewee_id INT NOT NULL COMMENT '被评价者ID',
-    rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5) COMMENT '评分（1-5星）',
-    content TEXT COMMENT '评价内容',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    
-    FOREIGN KEY (order_id) REFERENCES orders(id) COMMENT '外键：订单',
-    FOREIGN KEY (item_id) REFERENCES items(id) COMMENT '外键：商品',
-    FOREIGN KEY (reviewer_id) REFERENCES users(id) COMMENT '外键：评价者',
-    FOREIGN KEY (reviewee_id) REFERENCES users(id) COMMENT '外键：被评价者',
-    KEY idx_item_id (item_id) COMMENT '商品索引',
-    KEY idx_reviewer_id (reviewer_id) COMMENT '评价者索引'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='评价表';
+  id INT PRIMARY KEY AUTO_INCREMENT COMMENT '评价ID',
+  order_id INT NOT NULL COMMENT '订单ID',
+  item_id INT NOT NULL COMMENT '商品ID',
+  reviewer_id INT NOT NULL COMMENT '评价人ID',
+  reviewee_id INT NOT NULL COMMENT '被评价人ID',
+  rating INT NOT NULL DEFAULT 5 COMMENT '评分',
+  content TEXT DEFAULT NULL COMMENT '内容',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  INDEX idx_reviews_order (order_id),
+  INDEX idx_reviews_item (item_id),
+  INDEX idx_reviews_reviewer (reviewer_id),
+  INDEX idx_reviews_reviewee (reviewee_id),
+  CONSTRAINT fk_reviews_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+  CONSTRAINT fk_reviews_item FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE,
+  CONSTRAINT fk_reviews_reviewer FOREIGN KEY (reviewer_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_reviews_reviewee FOREIGN KEY (reviewee_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET FOREIGN_KEY_CHECKS = 1;

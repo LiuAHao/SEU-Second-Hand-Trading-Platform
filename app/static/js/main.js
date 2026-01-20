@@ -190,12 +190,14 @@ const CartManager = {
    */
   addItem: (item) => {
     const existing = AppState.cart.find(i => i.itemId === item.itemId);
+    const incomingQty = item.quantity || 1;
     if (existing) {
-      existing.quantity += item.quantity || 1;
+      // replaceQuantity=true 时覆盖为最新选择，避免重复添加叠加导致数量不一致
+      existing.quantity = item.replaceQuantity ? incomingQty : (existing.quantity + incomingQty);
     } else {
       AppState.cart.push({
         ...item,
-        quantity: item.quantity || 1,
+        quantity: incomingQty,
       });
     }
     CartManager.saveCart();
